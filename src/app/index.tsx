@@ -41,6 +41,11 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Quick Actions Card */}
         <Card mode="elevated" style={styles.quickActionsCard}>
@@ -51,7 +56,12 @@ export default function HomeScreen() {
                 icon="plus"
                 size={20}
                 iconColor={BRAND.purple}
+              {<IconButton
+                icon="plus"
+                size={20}
+                iconColor={BRAND.purple}
                 onPress={goReminders}
+              /> }
               /> }
             </View>
             <View style={styles.grid}>
@@ -205,6 +215,8 @@ const styles = StyleSheet.create({
   metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   metricCard: { flex: 1, backgroundColor: 'white' },
   metricCardWide: { flex: 1, backgroundColor: 'white' },
+  metricCard: { flex: 1, backgroundColor: 'white' },
+  metricCardWide: { flex: 1, backgroundColor: 'white' },
   metricContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricAvatar: { backgroundColor: 'rgba(103,80,164,0.12)' },
   muted: { opacity: 0.7 },
@@ -216,6 +228,8 @@ const styles = StyleSheet.create({
   // Quick Actions Card
   quickActionsCard: {
     marginBottom: space(2),
+    borderRadius: 12,
+    backgroundColor: 'white',
     borderRadius: 12,
     backgroundColor: 'white',
   },
