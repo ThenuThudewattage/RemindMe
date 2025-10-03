@@ -4,6 +4,8 @@ import { Reminder, ReminderEvent, CreateReminderInput, UpdateReminderInput } fro
 class DatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
   private static instance: DatabaseService;
+  private isInitialized: boolean = false;
+  private initializationPromise: Promise<void> | null = null;
 
   private constructor() {}
 
@@ -15,12 +17,33 @@ class DatabaseService {
   }
 
   public async initialize(): Promise<void> {
+    // If already initialized, return immediately
+    if (this.isInitialized && this.db) {
+      return;
+    }
+
+    // If initialization is in progress, wait for it
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    // Start initialization
+    this.initializationPromise = this.performInitialization();
+    return this.initializationPromise;
+  }
+
+  private async performInitialization(): Promise<void> {
     try {
+      console.log('Starting database initialization...');
       this.db = await SQLite.openDatabaseAsync('remindme.db');
       await this.createTables();
+      this.isInitialized = true;
       console.log('Database initialized successfully');
     } catch (error) {
       console.error('Database initialization failed:', error);
+      this.isInitialized = false;
+      this.db = null;
+      this.initializationPromise = null;
       throw error;
     }
   }

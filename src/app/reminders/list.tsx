@@ -46,11 +46,20 @@ export default function RemindersListScreen() {
   const loadReminders = async () => {
     try {
       setLoading(true);
+      // Ensure database is initialized before attempting to load reminders
+      await repo.initialize();
       const allReminders = await repo.getAllReminders();
       setReminders(allReminders);
     } catch (error) {
       console.error('Error loading reminders:', error);
-      Alert.alert('Error', 'Failed to load reminders');
+      Alert.alert(
+        'Database Error', 
+        'Failed to load reminders. The database may not be properly initialized.',
+        [
+          { text: 'Retry', onPress: loadReminders },
+          { text: 'OK' }
+        ]
+      );
     } finally {
       setLoading(false);
     }
