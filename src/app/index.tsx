@@ -1,125 +1,160 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Button, Text, Card, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ImageBackground } from 'react-native';
+import { Text, Card, Button, IconButton, useTheme, Chip, Avatar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { BRAND, space } from '../theme';
+import NotificationService from '../services/notifications'; // OPTIONAL: only if you want quick test action
 
 export default function HomeScreen() {
   const theme = useTheme();
 
-  const navigateToReminders = () => {
-    router.push('/reminders/list');
-  };
-
-  const navigateToSettings = () => {
-    router.push('/settings');
-  };
+  const goReminders = () => router.push('/reminders/list');
+  const goSettings = () => router.push('/settings');
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text variant="displaySmall" style={[styles.title, { color: theme.colors.primary }]}>
-            RemindMe+
-          </Text>
+      {/* HERO — rich purple header with subtle noise/texture (uses a tiny base64 gradient or replace with your asset) */}
+      <ImageBackground
+        source={{
+          uri:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAADICAYAAADpAq3lAAAACXBIWXMAAAsSAAALEgHS3X78AAAAG0lEQVQ4y2NgYGBg+P//PwMDA0YwGJgYwJgBAA9bB3S6qf4yAAAAAElFTkSuQmCC',
+        }}
+        resizeMode="cover"
+        style={[styles.hero, { backgroundColor: BRAND.purple }]}
+        imageStyle={{ opacity: 0.15 }}
+      >
+        <View style={styles.heroTopRow}>
+          <Text variant="headlineLarge" style={styles.brandTitle}>RemindMe+</Text>
+          <IconButton icon="bell-outline" iconColor="white" onPress={goReminders} />
         </View>
 
-        <View style={styles.cards}>
-          <Card style={styles.card} mode="elevated" onPress={navigateToReminders}>
-            <Card.Content style={styles.cardContent}>
-              <Text variant="headlineSmall" style={styles.cardTitle}>
-                My Reminders
-              </Text>
-              <Text variant="bodyMedium" style={styles.cardDescription}>
-                View, create, and manage your smart reminders
-              </Text>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.card} mode="elevated" onPress={navigateToSettings}>
-            <Card.Content style={styles.cardContent}>
-              <Text variant="headlineSmall" style={styles.cardTitle}>
-                Settings
-              </Text>
-              <Text variant="bodyMedium" style={styles.cardDescription}>
-                Configure permissions and app preferences
-              </Text>
-            </Card.Content>
-          </Card>
-        </View>
-
-        <View style={styles.quickActions}>
+        <View style={styles.heroButtons}>
           <Button
             mode="contained"
-            onPress={navigateToReminders}
-            style={styles.primaryButton}
-            contentStyle={styles.buttonContent}
+            onPress={goReminders}
+            buttonColor="white"
+            textColor={BRAND.purple}
+            style={{ borderRadius: 14 }}
           >
-            Get Started
+            Create Reminder
+          </Button>
+          <Button mode="text" textColor="white" onPress={goSettings}>
+            Settings
           </Button>
         </View>
+      </ImageBackground>
+
+      {/* CONTENT */}
+      <View style={styles.content}>
+        {/* Metric Cards */}
+        <View style={styles.metricsRow}>
+          <Card mode="elevated" style={styles.metricCard}>
+            <Card.Content style={styles.metricContent}>
+              <Avatar.Icon size={40} icon="calendar-check" style={styles.metricAvatar} />
+              <View style={{ flex: 1 }}>
+                <Text variant="headlineSmall">4</Text>
+                <Text variant="bodySmall" style={styles.muted}>Upcoming today</Text>
+              </View>
+            </Card.Content>
+          </Card>
+
+          <Card mode="elevated" style={styles.metricCard}>
+            <Card.Content style={styles.metricContent}>
+              <Avatar.Icon size={40} icon="map-marker-radius-outline" style={styles.metricAvatar} />
+              <View style={{ flex: 1 }}>
+                <Text variant="headlineSmall">3</Text>
+                <Text variant="bodySmall" style={styles.muted}>Active geofences</Text>
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
+
+        <View style={styles.metricsRow}>
+          <Card mode="elevated" style={styles.metricCardWide}>
+            <Card.Content style={[styles.metricContent, { gap: 12 }]}>
+              <Avatar.Icon size={40} icon="battery-50" style={styles.metricAvatar} />
+              <View style={{ flex: 1 }}>
+                <Text variant="titleMedium">Battery 52%</Text>
+                <Text variant="bodySmall" style={styles.muted}>Low-battery rules enabled</Text>
+              </View>
+              <Button compact onPress={goSettings}>Optimize</Button>
+            </Card.Content>
+          </Card>
+        </View>
+
+        {/* Quick Actions */}
+        <Text variant="titleMedium" style={{ marginBottom: space(1) }}>Quick actions</Text>
+        <View style={styles.quickRow}>
+          <Card onPress={goReminders} mode="elevated" style={styles.quickCard}>
+            <Card.Content style={styles.quickContent}>
+              <Avatar.Icon size={32} icon="clock-plus-outline" />
+              <Text variant="labelLarge">Time-based</Text>
+            </Card.Content>
+          </Card>
+
+          <Card onPress={goReminders} mode="elevated" style={styles.quickCard}>
+            <Card.Content style={styles.quickContent}>
+              <Avatar.Icon size={32} icon="map-marker-plus-outline" />
+              <Text variant="labelLarge">Location-based</Text>
+            </Card.Content>
+          </Card>
+
+          <Card onPress={goReminders} mode="elevated" style={styles.quickCard}>
+            <Card.Content style={styles.quickContent}>
+              <Avatar.Icon size={32} icon="battery-plus-outline" />
+              <Text variant="labelLarge">Battery-based</Text>
+            </Card.Content>
+          </Card>
+        </View>
+
+        <Card mode="outlined" style={{ marginTop: space(2) }}>
+          <Card.Content>
+            <Text variant="titleSmall">History</Text>
+            <Text variant="bodySmall" style={styles.muted}>Snoozed “Pick up groceries” · 12m ago</Text>
+            <Text variant="bodySmall" style={styles.muted}>Fired “Team meeting” · 9:00 AM</Text>
+          </Card.Content>
+        </Card>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  hero: {
+    paddingHorizontal: space(2),
+    paddingTop: space(2),
+    paddingBottom: space(3),
+    // borderBottomLeftRadius: 24,
+    // borderBottomRightRadius: 24,
+    overflow: 'hidden',
   },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  header: {
+  heroTopRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 40,
-    marginTop: 20,
+    justifyContent: 'space-between',
   },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+  brandTitle: {
+    color: 'white',
+    fontWeight: '800',
   },
-  subtitle: {
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  cards: {
-    marginBottom: 30,
-  },
-  card: {
-    marginBottom: 16,
-  },
-  cardContent: {
-    paddingVertical: 20,
-  },
-  cardTitle: {
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  cardDescription: {
-    opacity: 0.7,
-  },
-  quickActions: {
-    marginBottom: 40,
-  },
-  primaryButton: {
-    marginBottom: 12,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  features: {
-    flex: 1,
-  },
-  featuresTitle: {
-    marginBottom: 16,
-    fontWeight: '600',
-  },
-  featureList: {
-    gap: 12,
-  },
-  feature: {
-    lineHeight: 22,
-  },
+  heroSubtitle: { color: 'white', opacity: 0.95, marginTop: 6 },
+  bold: { fontWeight: '700' },
+  heroChips: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  heroChip: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  heroButtons: { flexDirection: 'row', gap: 12, marginTop: 18, alignItems: 'center' },
+
+  content: { flex: 1, paddingHorizontal: space(2), paddingTop: space(2) },
+
+  metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  metricCard: { flex: 1 },
+  metricCardWide: { flex: 1 },
+  metricContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  metricAvatar: { backgroundColor: 'rgba(103,80,164,0.12)' },
+  muted: { opacity: 0.7 },
+
+  quickRow: { flexDirection: 'row', gap: 12 },
+  quickCard: { flex: 1 },
+  quickContent: { alignItems: 'center', gap: 8, paddingVertical: 12 },
 });
