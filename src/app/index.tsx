@@ -22,9 +22,6 @@ export default function HomeScreen() {
           <Text variant="displaySmall" style={[styles.title, { color: theme.colors.primary }]}>
             RemindMe+
           </Text>
-          <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Smart location and context-aware reminders
-          </Text>
         </View>
 
         <View style={styles.cards}>
@@ -60,29 +57,6 @@ export default function HomeScreen() {
           >
             Get Started
           </Button>
-        </View>
-
-        <View style={styles.features}>
-          <Text variant="titleMedium" style={styles.featuresTitle}>
-            Features
-          </Text>
-          <View style={styles.featureList}>
-            <Text variant="bodyMedium" style={styles.feature}>
-              📍 Location-based reminders with geofencing
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              ⏰ Time-based scheduling and conditions
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              🔋 Battery level-aware notifications
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              🔄 Background processing and monitoring
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              💾 Local storage with no cloud dependency
-            </Text>
-          </View>
         </View>
       </View>
     </SafeAreaView>
