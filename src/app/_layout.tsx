@@ -10,49 +10,48 @@ export default function RootTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,   // onboarding purple
+        tabBarActiveTintColor: theme.colors.primary,
         tabBarStyle: { height: 60, paddingBottom: 10, paddingTop: 6 },
         tabBarLabelStyle: { fontSize: 12 },
       }}
     >
-      {/* Dashboard = / (src/app/index.tsx) */}
+      {/* Dashboard -> /index */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home-variant-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) =>
+            <MaterialCommunityIcons name="home-variant-outline" size={size} color={color} />,
         }}
       />
-      {/* Reminders list = /reminders/list (keeps your /reminders stack intact) */}
+
+      {/* Reminders folder - only the list screen will show in tabs */}
       <Tabs.Screen
-        name="reminders/list"
+        name="reminders"
         options={{
           title: 'Reminders',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bell-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) =>
+            <MaterialCommunityIcons name="bell-outline" size={size} color={color} />,
         }}
       />
-      {/* History = /history */}
+
+      {/* (Optional) History -> /history */}
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="history" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) =>
+            <MaterialCommunityIcons name="history" size={size} color={color} />,
         }}
       />
-      {/* Settings = /settings (your existing file) */}
+
+      {/* Settings -> /settings */}
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) =>
+            <MaterialCommunityIcons name="cog-outline" size={size} color={color} />,
         }}
       />
     </Tabs>

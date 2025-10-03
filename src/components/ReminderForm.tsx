@@ -18,6 +18,8 @@ import { CreateReminderInput, UpdateReminderInput, ReminderRule } from '../types
 
 interface ReminderFormProps {
   initialValues?: UpdateReminderInput;
+  defaultCreateValues?: CreateReminderInput;
+  preset?: string;
   onSubmit: (data: CreateReminderInput | UpdateReminderInput) => Promise<void>;
   onCancel: () => void;
   isEditing?: boolean;
@@ -25,6 +27,8 @@ interface ReminderFormProps {
 
 export const ReminderForm: React.FC<ReminderFormProps> = ({
   initialValues,
+  defaultCreateValues,
+  preset,
   onSubmit,
   onCancel,
   isEditing = false,

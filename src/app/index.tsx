@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ImageBackground, ScrollView } from 'react-native';
-import { Text, Card, Button, IconButton, useTheme, Chip, Avatar } from 'react-native-paper';
+import { Text, Card, Button, IconButton, useTheme, Chip, Avatar, FAB, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BRAND, space } from '../theme';
@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const goReminders = () => router.push('/reminders/list');
   const goSettings = () => router.push('/settings');
@@ -31,20 +32,7 @@ export default function HomeScreen() {
           <IconButton icon="bell-outline" iconColor="white" onPress={goReminders} />
         </View>
 
-        <View style={styles.heroButtons}>
-          <Button
-            mode="contained"
-            onPress={goReminders}
-            buttonColor="white"
-            textColor={BRAND.purple}
-            style={{ borderRadius: 14 }}
-          >
-            Create Reminder
-          </Button>
-          <Button mode="text" textColor="white" onPress={goSettings}>
-            Settings
-          </Button>
-        </View>
+    
       </ImageBackground>
 
       {/* CONTENT */}
@@ -136,6 +124,14 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
       </ScrollView>
+      
+      {/* Floating Action Button */}
+      <FAB
+        icon="plus"
+        style={[styles.fab, { backgroundColor: BRAND.purple }]}
+        onPress={goReminders}
+        color="white"
+      />
     </SafeAreaView>
   );
 }
@@ -161,10 +157,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   hero: {
     paddingHorizontal: space(2),
-    paddingTop: space(2),
+    paddingTop: space(3),
     paddingBottom: space(3),
-    // borderBottomLeftRadius: 24,
-    // borderBottomRightRadius: 24,
     overflow: 'hidden',
   },
   heroTopRow: {
@@ -180,7 +174,30 @@ const styles = StyleSheet.create({
   bold: { fontWeight: '700' },
   heroChips: { flexDirection: 'row', gap: 8, marginTop: 12 },
   heroChip: { backgroundColor: 'rgba(255,255,255,0.18)' },
-  heroButtons: { flexDirection: 'row', gap: 12, marginTop: 18, alignItems: 'center' },
+  heroSearch: { marginTop: 18 },
+  searchInput: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+  },
+  searchOutline: {
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1,
+  },
+  searchContent: {
+    color: 'white',
+  },
+  
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 80, // Above tab bar
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
 
   scrollView: { flex: 1 },
   content: { paddingHorizontal: space(2), paddingTop: space(2), paddingBottom: space(3) },
