@@ -2,6 +2,8 @@ import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import LocationService from './location';
 import BatteryService from './battery';
+import { ContextEngine } from './contextEngine';
+import NotificationService from './notifications';
 
 const BACKGROUND_FETCH_TASK = 'background-fetch-task';
 
@@ -20,11 +22,14 @@ class BackgroundService {
 
   public async initialize(): Promise<void> {
     try {
+      // Note: expo-background-fetch is deprecated, but we'll handle it gracefully
+      console.warn('Background fetch is using deprecated API - consider upgrading to expo-background-task');
       await this.defineBackgroundTasks();
       await this.registerBackgroundFetch();
       console.log('Background service initialized');
     } catch (error) {
-      console.error('Failed to initialize background service:', error);
+      console.warn('Background service initialization failed (this is expected in Expo Go):', error);
+      // Don't throw error - this is expected in development
     }
   }
 
@@ -38,8 +43,7 @@ class BackgroundService {
         const batteryService = BatteryService.getInstance();
         await batteryService.getCurrentBatteryState();
         
-        // Import context engine dynamically to avoid circular dependencies
-        const { ContextEngine } = await import('./contextEngine');
+        // Use context engine to check conditions
         const contextEngine = ContextEngine.getInstance();
         await contextEngine.checkAllConditions();
         
@@ -170,8 +174,7 @@ class BackgroundService {
       const locationService = LocationService.getInstance();
       const locationPermissions = await locationService.checkPermissions();
       
-      // Import notification service dynamically
-      const NotificationService = (await import('./notifications')).default;
+      // Get notification service instance
       const notificationService = NotificationService.getInstance();
       const notificationPermissions = await notificationService.checkPermissions();
 
@@ -201,7 +204,6 @@ class BackgroundService {
       const locationPermissions = await locationService.requestPermissions();
       
       // Request notification permissions
-      const NotificationService = (await import('./notifications')).default;
       const notificationService = NotificationService.getInstance();
       const notificationPermissions = await notificationService.requestPermissions();
 

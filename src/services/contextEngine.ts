@@ -1,6 +1,8 @@
 import * as Location from 'expo-location';
 import ReminderRepository from './repo';
 import NotificationService from './notifications';
+import LocationService from './location';
+import BatteryService from './battery';
 import { Reminder, BatteryState } from '../types/reminder';
 
 export class ContextEngine {
@@ -76,7 +78,6 @@ export class ContextEngine {
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
-        const LocationService = (await import('./location')).default;
         const locationService = LocationService.getInstance();
         currentLocation = await locationService.getCurrentLocation();
       }
@@ -84,7 +85,6 @@ export class ContextEngine {
       // Get current battery state if needed
       let currentBatteryState: BatteryState | null = null;
       if (reminder.rule.battery) {
-        const BatteryService = (await import('./battery')).default;
         const batteryService = BatteryService.getInstance();
         currentBatteryState = await batteryService.getCurrentBatteryState();
       }
@@ -112,7 +112,6 @@ export class ContextEngine {
       // Get current battery state if needed
       let currentBatteryState: BatteryState | null = null;
       if (reminder.rule.battery) {
-        const BatteryService = (await import('./battery')).default;
         const batteryService = BatteryService.getInstance();
         currentBatteryState = await batteryService.getCurrentBatteryState();
       }
@@ -139,7 +138,6 @@ export class ContextEngine {
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
-        const LocationService = (await import('./location')).default;
         const locationService = LocationService.getInstance();
         currentLocation = await locationService.getCurrentLocation();
       }
@@ -163,7 +161,6 @@ export class ContextEngine {
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
-        const LocationService = (await import('./location')).default;
         const locationService = LocationService.getInstance();
         currentLocation = await locationService.getCurrentLocation();
       }
@@ -171,7 +168,6 @@ export class ContextEngine {
       // Get current battery state if needed
       let currentBatteryState: BatteryState | null = null;
       if (reminder.rule.battery) {
-        const BatteryService = (await import('./battery')).default;
         const batteryService = BatteryService.getInstance();
         currentBatteryState = await batteryService.getCurrentBatteryState();
       }

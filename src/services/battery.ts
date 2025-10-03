@@ -1,5 +1,6 @@
 import * as Battery from 'expo-battery';
 import { BatteryState } from '../types/reminder';
+import { ContextEngine } from './contextEngine';
 
 class BatteryService {
   private static instance: BatteryService;
@@ -130,8 +131,7 @@ class BatteryService {
 
   private async checkBatteryConditions(batteryState: BatteryState): Promise<void> {
     try {
-      // Import the context engine dynamically to avoid circular dependencies
-      const { ContextEngine } = await import('./contextEngine');
+      // Use the context engine to check battery conditions
       const contextEngine = ContextEngine.getInstance();
       await contextEngine.checkBatteryConditions(batteryState);
     } catch (error) {
