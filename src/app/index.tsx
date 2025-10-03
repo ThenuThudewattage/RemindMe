@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ImageBackground } from 'react-native';
+import { View, StyleSheet, ImageBackground, ScrollView } from 'react-native';
 import { Text, Card, Button, IconButton, useTheme, Chip, Avatar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -48,19 +48,23 @@ export default function HomeScreen() {
       </ImageBackground>
 
       {/* CONTENT */}
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Quick Actions Card */}
         <Card mode="elevated" style={styles.quickActionsCard}>
           <Card.Content>
             <View style={styles.cardHeader}>
               <Text variant="titleMedium" style={styles.cardTitle}>Quick Actions</Text>
-              <IconButton 
-                icon="plus" 
-                size={20} 
-                iconColor={BRAND.purple} 
+              {<IconButton
+                icon="plus"
+                size={20}
+                iconColor={BRAND.purple}
                 onPress={goReminders}
-              />
+              /> }
             </View>
             <View style={styles.grid}>
               <Tile
@@ -131,7 +135,7 @@ export default function HomeScreen() {
             <Text variant="bodySmall" style={styles.muted}>Fired “Team meeting” · 9:00 AM</Text>
           </Card.Content>
         </Card>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -178,11 +182,12 @@ const styles = StyleSheet.create({
   heroChip: { backgroundColor: 'rgba(255,255,255,0.18)' },
   heroButtons: { flexDirection: 'row', gap: 12, marginTop: 18, alignItems: 'center' },
 
-  content: { flex: 1, paddingHorizontal: space(2), paddingTop: space(2) },
+  scrollView: { flex: 1 },
+  content: { paddingHorizontal: space(2), paddingTop: space(2), paddingBottom: space(3) },
 
   metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  metricCard: { flex: 1 },
-  metricCardWide: { flex: 1 },
+  metricCard: { flex: 1, backgroundColor: 'white' },
+  metricCardWide: { flex: 1, backgroundColor: 'white' },
   metricContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricAvatar: { backgroundColor: 'rgba(103,80,164,0.12)' },
   muted: { opacity: 0.7 },
@@ -194,7 +199,8 @@ const styles = StyleSheet.create({
   // Quick Actions Card
   quickActionsCard: {
     marginBottom: space(2),
-    borderRadius: 16,
+    borderRadius: 12,
+    backgroundColor: 'white',
   },
   cardHeader: {
     flexDirection: 'row',
