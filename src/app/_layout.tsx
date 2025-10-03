@@ -32,18 +32,29 @@ export default function RootLayout() {
       // Initialize repository (database)
       const repo = ReminderRepository.getInstance();
       await repo.initialize();
+      console.log('Repository initialized successfully');
 
       // Initialize notification service
-      const notificationService = NotificationService.getInstance();
-      await notificationService.initialize();
+      try {
+        const notificationService = NotificationService.getInstance();
+        await notificationService.initialize();
+        console.log('Notification service initialized successfully');
+      } catch (notificationError) {
+        console.warn('Notification service failed to initialize (this may be expected in Expo Go):', notificationError);
+      }
 
       // Initialize background service
-      const backgroundService = BackgroundService.getInstance();
-      await backgroundService.initialize();
+      try {
+        const backgroundService = BackgroundService.getInstance();
+        await backgroundService.initialize();
+        console.log('Background service initialized successfully');
+      } catch (backgroundError) {
+        console.warn('Background service failed to initialize (this is expected in Expo Go):', backgroundError);
+      }
 
       console.log('App initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize app:', error);
+      console.error('Critical app initialization error:', error);
     }
   };
 
@@ -53,7 +64,7 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen 
-          name="list" 
+          name="reminders/list" 
           options={{ 
             title: 'Reminders',
             headerStyle: { backgroundColor: theme.colors.primary },
@@ -61,7 +72,7 @@ export default function RootLayout() {
           }} 
         />
         <Stack.Screen 
-          name="edit" 
+          name="reminders/edit" 
           options={{ 
             title: 'Edit Reminder',
             headerStyle: { backgroundColor: theme.colors.primary },
@@ -69,7 +80,7 @@ export default function RootLayout() {
           }} 
         />
         <Stack.Screen 
-          name="detail" 
+          name="reminders/detail" 
           options={{ 
             title: 'Reminder Details',
             headerStyle: { backgroundColor: theme.colors.primary },

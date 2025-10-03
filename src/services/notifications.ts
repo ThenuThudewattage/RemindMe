@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { NotificationPermissionStatus, NotificationAction, NotificationCategory } from '../types/reminder';
+import ReminderRepository from './repo';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -175,8 +176,7 @@ class NotificationService {
         return;
       }
 
-      // Import repository dynamically to avoid circular dependencies
-      const ReminderRepository = (await import('./repo')).default;
+      // Get repository instance
       const repo = ReminderRepository.getInstance();
 
       switch (actionIdentifier) {
