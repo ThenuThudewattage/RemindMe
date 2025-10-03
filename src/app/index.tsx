@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BRAND, space } from '../theme';
 import NotificationService from '../services/notifications'; // OPTIONAL: only if you want quick test action
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -48,7 +49,41 @@ export default function HomeScreen() {
 
       {/* CONTENT */}
       <View style={styles.content}>
-        {/* Metric Cards */}
+
+        {/* Quick Actions Card */}
+        <Card mode="elevated" style={styles.quickActionsCard}>
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <Text variant="titleMedium" style={styles.cardTitle}>Quick Actions</Text>
+              <IconButton 
+                icon="plus" 
+                size={20} 
+                iconColor={BRAND.purple} 
+                onPress={goReminders}
+              />
+            </View>
+            <View style={styles.grid}>
+              <Tile
+                color="#7C4DFF" icon="clock-outline" label="Time"
+                onPress={() => router.push('/reminders/edit?preset=time')}
+              />
+              <Tile
+                color="#7CB342" icon="map-marker" label="Location"
+                onPress={() => router.push('/reminders/edit?preset=location')}
+              />
+              <Tile
+                color="#FFA000" icon="battery" label="Battery"
+                onPress={() => router.push('/reminders/edit?preset=battery')}
+              />
+              <Tile
+                color="#1E88E5" icon="checkbox-marked-outline" label="All"
+                onPress={goReminders}
+              />
+            </View>
+          </Card.Content>
+        </Card>
+
+      {/* Metric Cards */}
         <View style={styles.metricsRow}>
           <Card mode="elevated" style={styles.metricCard}>
             <Card.Content style={styles.metricContent}>
@@ -84,31 +119,6 @@ export default function HomeScreen() {
           </Card>
         </View>
 
-        {/* Quick Actions */}
-        <Text variant="titleMedium" style={{ marginBottom: space(1) }}>Quick actions</Text>
-        <View style={styles.quickRow}>
-          <Card onPress={goReminders} mode="elevated" style={styles.quickCard}>
-            <Card.Content style={styles.quickContent}>
-              <Avatar.Icon size={32} icon="clock-plus-outline" />
-              <Text variant="labelLarge">Time-based</Text>
-            </Card.Content>
-          </Card>
-
-          <Card onPress={goReminders} mode="elevated" style={styles.quickCard}>
-            <Card.Content style={styles.quickContent}>
-              <Avatar.Icon size={32} icon="map-marker-plus-outline" />
-              <Text variant="labelLarge">Location-based</Text>
-            </Card.Content>
-          </Card>
-
-          <Card onPress={goReminders} mode="elevated" style={styles.quickCard}>
-            <Card.Content style={styles.quickContent}>
-              <Avatar.Icon size={32} icon="battery-plus-outline" />
-              <Text variant="labelLarge">Battery-based</Text>
-            </Card.Content>
-          </Card>
-        </View>
-
         <Card mode="outlined" style={{ marginTop: space(2) }}>
           <Card.Content>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -123,6 +133,23 @@ export default function HomeScreen() {
         </Card>
       </View>
     </SafeAreaView>
+  );
+}
+
+
+/** small internal tile component to match the mock */
+function Tile({ color, icon, label, onPress }: {
+  color: string; icon: any; label: string; onPress: () => void;
+}) {
+  return (
+    <Card mode="elevated" style={styles.tileCard} onPress={onPress}>
+      <View style={styles.tileInner}>
+        <View style={[styles.tileIconWrap, { backgroundColor: `${color}1A` /* 10% tint */ }]}>
+          <MaterialCommunityIcons name={icon} size={30} color={color} />
+        </View>
+        <Text variant="titleMedium" style={styles.tileLabel}>{label}</Text>
+      </View>
+    </Card>
   );
 }
 
@@ -163,4 +190,47 @@ const styles = StyleSheet.create({
   quickRow: { flexDirection: 'row', gap: 12 },
   quickCard: { flex: 1 },
   quickContent: { alignItems: 'center', gap: 8, paddingVertical: 12 },
+
+  // Quick Actions Card
+  quickActionsCard: {
+    marginBottom: space(2),
+    borderRadius: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: space(1),
+  },
+  cardTitle: {
+    fontWeight: '600',
+  },
+
+  grid: {
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  tileCard: {
+    width: '48%',
+    borderRadius: 12,
+    elevation: 1,
+  },
+  tileInner: { 
+    alignItems: 'center', 
+    paddingVertical: 16, 
+    gap: 8 
+  },
+  tileIconWrap: {
+    width: 48, 
+    height: 48, 
+    borderRadius: 12,
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
+  tileLabel: { 
+    fontWeight: '500',
+    fontSize: 14,
+  },
 });
