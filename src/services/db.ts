@@ -16,6 +16,10 @@ class DatabaseService {
     return DatabaseService.instance;
   }
 
+  public isReady(): boolean {
+    return this.isInitialized && this.db !== null;
+  }
+
   public async initialize(): Promise<void> {
     // If already initialized, return immediately
     if (this.isInitialized && this.db) {

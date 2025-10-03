@@ -9,11 +9,13 @@ import {
   useTheme,
   ActivityIndicator,
   Chip,
-  Divider
+  Divider,
+  DataTable
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackgroundService from '../services/background';
 import ReminderRepository from '../services/repo';
+import { Reminder, ReminderEvent } from '../types/reminder';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -29,6 +31,9 @@ export default function SettingsScreen() {
     activeReminders: 0,
     totalEvents: 0,
   });
+  const [showDatabase, setShowDatabase] = useState(false);
+  const [dbReminders, setDbReminders] = useState<Reminder[]>([]);
+  const [dbEvents, setDbEvents] = useState<ReminderEvent[]>([]);
 
   const backgroundService = BackgroundService.getInstance();
   const repo = ReminderRepository.getInstance();
@@ -40,6 +45,12 @@ export default function SettingsScreen() {
   const loadSettings = async () => {
     try {
       setLoading(true);
+      
+      // Initialize database first
+      await repo.initialize();
+      
+      // Add a small delay to ensure initialization is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Load permissions
       const permissionStatus = await backgroundService.checkBackgroundPermissions();
@@ -61,8 +72,33 @@ export default function SettingsScreen() {
         activeReminders: activeReminders.length,
         totalEvents: recentEvents.length,
       });
+      
+      // Store data for database viewer
+      setDbReminders(allReminders);
+      setDbEvents(recentEvents);
     } catch (error) {
       console.error('Error loading settings:', error);
+      
+      // Set empty data on error to prevent crashes
+      setStats({
+        totalReminders: 0,
+        activeReminders: 0,
+        totalEvents: 0,
+      });
+      setDbReminders([]);
+      setDbEvents([]);
+      
+      // Show user-friendly error if it's a database issue
+      if (error instanceof Error && error.message.includes('Database not initialized')) {
+        Alert.alert(
+          'Loading Error',
+          'Database is still initializing. Please wait a moment and try again.',
+          [
+            { text: 'Cancel' },
+            { text: 'Retry', onPress: () => setTimeout(loadSettings, 1000) }
+          ]
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -285,6 +321,73 @@ export default function SettingsScreen() {
               left={(props) => <List.Icon {...props} icon="delete-sweep" />}
               right={(props) => <List.Icon {...props} icon="chevron-right" />}
             />
+          </Card.Content>
+        </Card>
+
+        {/* Database Viewer Card */}
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Database Viewer
+            </Text>
+            
+            <List.Item
+              title="View Database Tables"
+              description="Show reminders and events data"
+              onPress={() => setShowDatabase(!showDatabase)}
+              left={(props) => <List.Icon {...props} icon="database" />}
+              right={(props) => <List.Icon {...props} icon={showDatabase ? "chevron-up" : "chevron-down"} />}
+            />
+            
+            {showDatabase && (
+              <View style={{ marginTop: 16 }}>
+                <Text variant="titleSmall" style={{ marginBottom: 8 }}>Reminders Table</Text>
+                <DataTable>
+                  <DataTable.Header>
+                    <DataTable.Title>ID</DataTable.Title>
+                    <DataTable.Title>Title</DataTable.Title>
+                    <DataTable.Title>Enabled</DataTable.Title>
+                    <DataTable.Title>Created</DataTable.Title>
+                  </DataTable.Header>
+                  {dbReminders.map((reminder) => (
+                    <DataTable.Row key={reminder.id}>
+                      <DataTable.Cell>{reminder.id}</DataTable.Cell>
+                      <DataTable.Cell>{reminder.title}</DataTable.Cell>
+                      <DataTable.Cell>{reminder.enabled ? 'Yes' : 'No'}</DataTable.Cell>
+                      <DataTable.Cell>{new Date(reminder.createdAt).toLocaleDateString()}</DataTable.Cell>
+                    </DataTable.Row>
+                  ))}
+                  {dbReminders.length === 0 && (
+                    <DataTable.Row>
+                      <DataTable.Cell>No reminders found</DataTable.Cell>
+                    </DataTable.Row>
+                  )}
+                </DataTable>
+                
+                <Text variant="titleSmall" style={{ marginTop: 16, marginBottom: 8 }}>Events Table</Text>
+                <DataTable>
+                  <DataTable.Header>
+                    <DataTable.Title>ID</DataTable.Title>
+                    <DataTable.Title>Reminder ID</DataTable.Title>
+                    <DataTable.Title>Type</DataTable.Title>
+                    <DataTable.Title>Created</DataTable.Title>
+                  </DataTable.Header>
+                  {dbEvents.map((event) => (
+                    <DataTable.Row key={event.id}>
+                      <DataTable.Cell>{event.id}</DataTable.Cell>
+                      <DataTable.Cell>{event.reminderId}</DataTable.Cell>
+                      <DataTable.Cell>{event.type}</DataTable.Cell>
+                      <DataTable.Cell>{new Date(event.createdAt).toLocaleDateString()}</DataTable.Cell>
+                    </DataTable.Row>
+                  ))}
+                  {dbEvents.length === 0 && (
+                    <DataTable.Row>
+                      <DataTable.Cell>No events found</DataTable.Cell>
+                    </DataTable.Row>
+                  )}
+                </DataTable>
+              </View>
+            )}
           </Card.Content>
         </Card>
 

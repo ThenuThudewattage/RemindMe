@@ -55,11 +55,11 @@ export default function HomeScreen() {
             </View>
             <View style={styles.grid}>
               <Tile
-                color="#7C4DFF" icon="clock-outline" label="Time"
+                color="#7C4DFF" icon="clock-outline" label="Remind me later"
                 onPress={() => router.push('/reminders/edit?preset=time')}
               />
               <Tile
-                color="#7CB342" icon="map-marker" label="Location"
+                color="#7CB342" icon="map-marker" label="Wake me there"
                 onPress={() => router.push('/reminders/edit?preset=location')}
               />
               <Tile
@@ -68,7 +68,7 @@ export default function HomeScreen() {
               />
               <Tile
                 color="#1E88E5" icon="checkbox-marked-outline" label="All"
-                onPress={goReminders}
+                onPress={() => router.push('/reminders/edit?preset=all')}
               />
             </View>
           </Card.Content>

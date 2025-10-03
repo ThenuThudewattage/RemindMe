@@ -80,7 +80,23 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         setBatteryMode('max');
       }
     }
-  }, [initialValues]);
+
+    // Handle preset initialization
+    if (preset && !initialValues) {
+      if (preset === 'time') {
+        setHasTimeCondition(true);
+        setTitle('Remind me later');
+      } else if (preset === 'location') {
+        setHasLocationCondition(true);
+        setTitle('Wake me there');
+      } else if (preset === 'battery') {
+        setHasBatteryCondition(true);
+        setTitle('Battery reminder');
+      } else if (preset === 'all') {
+        setTitle('New reminder');
+      }
+    }
+  }, [initialValues, preset]);
 
   const getCurrentLocation = async () => {
     try {
@@ -159,6 +175,23 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       return;
     }
 
+    // Preset-specific validation
+    if (preset === 'location' && !currentLocation) {
+      Alert.alert('Validation Error', 'Please set a location for the location-based reminder.');
+      return;
+    }
+
+    if (preset === 'time' && !hasTimeCondition) {
+      Alert.alert('Validation Error', 'Time condition is required for time-based reminders.');
+      return;
+    }
+
+    if (preset === 'battery' && !hasBatteryCondition) {
+      Alert.alert('Validation Error', 'Battery condition is required for battery-based reminders.');
+      return;
+    }
+
+    // General validation for optional conditions
     if (hasLocationCondition && !currentLocation) {
       Alert.alert('Validation Error', 'Please set a location for the location-based reminder.');
       return;
@@ -188,6 +221,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const shouldShowSection = (section: 'time' | 'location' | 'battery' | 'options'): boolean => {
+    if (!preset || preset === 'all') return true;
+    if (preset === section) return true;
+    if (section === 'options') return true; // Always show options
+    return false;
   };
 
   return (
@@ -222,12 +262,18 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       </Card>
 
       {/* Time Condition */}
-      <Card style={styles.card} mode="outlined">
-        <Card.Content>
-          <View style={styles.conditionHeader}>
-            <Text variant="titleMedium">Time Condition</Text>
-            <Switch value={hasTimeCondition} onValueChange={setHasTimeCondition} />
-          </View>
+      {shouldShowSection('time') && (
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <View style={styles.conditionHeader}>
+              <Text variant="titleMedium">Time Condition</Text>
+              {preset !== 'time' && (
+                <Switch value={hasTimeCondition} onValueChange={setHasTimeCondition} />
+              )}
+              {preset === 'time' && (
+                <Text variant="bodySmall" style={{ color: theme.colors.primary }}>Required</Text>
+              )}
+            </View>
           
           {hasTimeCondition && (
             <View style={styles.conditionContent}>
@@ -250,16 +296,23 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               </View>
             </View>
           )}
-        </Card.Content>
-      </Card>
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Location Condition */}
-      <Card style={styles.card} mode="outlined">
-        <Card.Content>
-          <View style={styles.conditionHeader}>
-            <Text variant="titleMedium">Location Condition</Text>
-            <Switch value={hasLocationCondition} onValueChange={setHasLocationCondition} />
-          </View>
+      {shouldShowSection('location') && (
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <View style={styles.conditionHeader}>
+              <Text variant="titleMedium">Location Condition</Text>
+              {preset !== 'location' && (
+                <Switch value={hasLocationCondition} onValueChange={setHasLocationCondition} />
+              )}
+              {preset === 'location' && (
+                <Text variant="bodySmall" style={{ color: theme.colors.primary }}>Required</Text>
+              )}
+            </View>
           
           {hasLocationCondition && (
             <View style={styles.conditionContent}>
@@ -296,16 +349,22 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               </View>
             </View>
           )}
-        </Card.Content>
-      </Card>
+          </Card.Content>
+        </Card>
+      )}
 
-      {/* Battery Condition */}
-      <Card style={styles.card} mode="outlined">
-        <Card.Content>
-          <View style={styles.conditionHeader}>
-            <Text variant="titleMedium">Battery Condition</Text>
-            <Switch value={hasBatteryCondition} onValueChange={setHasBatteryCondition} />
-          </View>
+      {shouldShowSection('battery') && (
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <View style={styles.conditionHeader}>
+              <Text variant="titleMedium">Battery Condition</Text>
+              {preset !== 'battery' && (
+                <Switch value={hasBatteryCondition} onValueChange={setHasBatteryCondition} />
+              )}
+              {preset === 'battery' && (
+                <Text variant="bodySmall" style={{ color: theme.colors.primary }}>Required</Text>
+              )}
+            </View>
           
           {hasBatteryCondition && (
             <View style={styles.conditionContent}>
@@ -357,8 +416,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               )}
             </View>
           )}
-        </Card.Content>
-      </Card>
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Options */}
       <Card style={styles.card} mode="outlined">
