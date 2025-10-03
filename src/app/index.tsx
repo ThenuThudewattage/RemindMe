@@ -11,6 +11,7 @@ export default function HomeScreen() {
 
   const goReminders = () => router.push('/reminders/list');
   const goSettings = () => router.push('/settings');
+  const goHistory = () => router.push('/history');
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -110,7 +111,12 @@ export default function HomeScreen() {
 
         <Card mode="outlined" style={{ marginTop: space(2) }}>
           <Card.Content>
-            <Text variant="titleSmall">History</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text variant="titleSmall">History</Text>
+              <Button mode="text" compact onPress={goHistory} textColor={BRAND.purple}>
+                View All
+              </Button>
+            </View>
             <Text variant="bodySmall" style={styles.muted}>Snoozed “Pick up groceries” · 12m ago</Text>
             <Text variant="bodySmall" style={styles.muted}>Fired “Team meeting” · 9:00 AM</Text>
           </Card.Content>
