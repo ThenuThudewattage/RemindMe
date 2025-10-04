@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { 
   TextInput, 
   Button, 
@@ -10,8 +10,10 @@ import {
   useTheme,
   SegmentedButtons,
   IconButton,
-  Divider
+  Divider,
+  Menu
 } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import { CreateReminderInput, UpdateReminderInput, ReminderRule } from '../types/reminder';
@@ -46,6 +48,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   const [endDate, setEndDate] = useState(
     initialValues?.rule?.time?.end ? new Date(initialValues.rule.time.end) : new Date()
   );
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [timePickerMode, setTimePickerMode] = useState<'date' | 'time'>('time');
   
   // Location condition state
   const [hasLocationCondition, setHasLocationCondition] = useState(!!(initialValues?.rule?.location));
@@ -82,6 +87,26 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       }
     }
   }, [initialValues]);
+
+  useEffect(() => {
+    // Initialize location from existing reminder data when editing
+    if (initialValues?.rule?.location && isEditing) {
+      // Create a mock location object from the stored coordinates
+      const mockLocation: Location.LocationObject = {
+        coords: {
+          latitude: initialValues.rule.location.lat,
+          longitude: initialValues.rule.location.lon,
+          altitude: null,
+          accuracy: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+      };
+      setCurrentLocation(mockLocation);
+    }
+  }, [initialValues, isEditing]);
 
   useEffect(() => {
     // Get current battery level when component mounts
@@ -157,12 +182,21 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     }
 
     // Location condition
-    if (hasLocationCondition && currentLocation) {
-      newRule.location = {
-        lat: currentLocation.coords.latitude,
-        lon: currentLocation.coords.longitude,
-        radius: locationRadius,
-      };
+    if (hasLocationCondition) {
+      if (currentLocation) {
+        newRule.location = {
+          lat: currentLocation.coords.latitude,
+          lon: currentLocation.coords.longitude,
+          radius: locationRadius,
+        };
+      } else if (isEditing && initialValues?.rule?.location) {
+        // Keep existing location data when editing
+        newRule.location = {
+          lat: initialValues.rule.location.lat,
+          lon: initialValues.rule.location.lon,
+          radius: locationRadius,
+        };
+      }
     }
 
     // Battery condition
@@ -198,7 +232,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       return;
     }
 
-    if (hasLocationCondition && !currentLocation) {
+    if (hasLocationCondition && !currentLocation && !isEditing) {
       Alert.alert('Validation Error', 'Please set a location for the location-based reminder.');
       return;
     }
@@ -227,6 +261,42 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const formatDateOnly = (date: Date): string => {
+    return date.toLocaleDateString();
+  };
+
+  const showDateTimePicker = (isStart: boolean, mode: 'date' | 'time') => {
+    setTimePickerMode(mode);
+    if (isStart) {
+      setShowEndTimePicker(false); // Close end time picker if open
+      setShowStartTimePicker(true);
+    } else {
+      setShowStartTimePicker(false); // Close start time picker if open
+      setShowEndTimePicker(true);
+    }
+  };
+
+  const onStartTimeChange = (event: any, selectedDate?: Date) => {
+    setShowStartTimePicker(false);
+    if (selectedDate) {
+      setStartDate(selectedDate);
+    }
+  };
+
+  const onEndTimeChange = (event: any, selectedDate?: Date) => {
+    setShowEndTimePicker(false);
+    if (selectedDate) {
+      setEndDate(selectedDate);
+    }
   };
 
   const getBatteryColorBasedOnLevel = (): string => {
@@ -288,18 +358,121 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 Reminder will only trigger between these times
               </Text>
               
-              <View style={styles.dateContainer}>
-                <Text variant="labelMedium">Start Time</Text>
-                <Chip onPress={() => {/* TODO: Show date picker */}}>
-                  {formatDate(startDate)}
-                </Chip>
+              <View style={styles.timePickerContainer}>
+                <Text variant="labelLarge" style={styles.timeLabel}>Start Time</Text>
+                <View style={styles.timePickerRow}>
+                  <Chip 
+                    icon="calendar" 
+                    style={styles.timeChip}
+                    onPress={() => showDateTimePicker(true, 'date')}
+                  >
+                    {formatDateOnly(startDate)}
+                  </Chip>
+                  <Chip 
+                    icon="clock-outline" 
+                    style={styles.timeChip}
+                    onPress={() => showDateTimePicker(true, 'time')}
+                  >
+                    {formatTime(startDate)}
+                  </Chip>
+                </View>
               </View>
               
-              <View style={styles.dateContainer}>
-                <Text variant="labelMedium">End Time</Text>
-                <Chip onPress={() => {/* TODO: Show date picker */}}>
-                  {formatDate(endDate)}
-                </Chip>
+              {/* Start Time Picker - positioned right after start time display */}
+              {showStartTimePicker && (
+                <View style={styles.dateTimePickerContainer}>
+                  <DateTimePicker
+                    value={startDate}
+                    mode={timePickerMode}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onStartTimeChange}
+                    is24Hour={true}
+                  />
+                </View>
+              )}
+              
+              <View style={styles.timePickerContainer}>
+                <Text variant="labelLarge" style={styles.timeLabel}>End Time</Text>
+                <View style={styles.timePickerRow}>
+                  <Chip 
+                    icon="calendar" 
+                    style={styles.timeChip}
+                    onPress={() => showDateTimePicker(false, 'date')}
+                  >
+                    {formatDateOnly(endDate)}
+                  </Chip>
+                  <Chip 
+                    icon="clock-outline" 
+                    style={styles.timeChip}
+                    onPress={() => showDateTimePicker(false, 'time')}
+                  >
+                    {formatTime(endDate)}
+                  </Chip>
+                </View>
+              </View>
+              
+              {/* End Time Picker - positioned right after end time display */}
+              {showEndTimePicker && (
+                <View style={styles.dateTimePickerContainer}>
+                  <DateTimePicker
+                    value={endDate}
+                    mode={timePickerMode}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onEndTimeChange}
+                    is24Hour={true}
+                  />
+                </View>
+              )}
+              
+              <View style={styles.quickTimeOptions}>
+                <Text variant="labelMedium" style={styles.quickTimeLabel}>Quick Options:</Text>
+                <View style={styles.quickTimeButtons}>
+                  <Chip 
+                    mode="outlined" 
+                    style={styles.quickTimeChip}
+                    onPress={() => {
+                      const now = new Date();
+                      const morning = new Date(now);
+                      morning.setHours(9, 0, 0, 0);
+                      const evening = new Date(now);
+                      evening.setHours(17, 0, 0, 0);
+                      setStartDate(morning);
+                      setEndDate(evening);
+                    }}
+                  >
+                    Work Hours (9-5)
+                  </Chip>
+                  <Chip 
+                    mode="outlined" 
+                    style={styles.quickTimeChip}
+                    onPress={() => {
+                      const now = new Date();
+                      const evening = new Date(now);
+                      evening.setHours(18, 0, 0, 0);
+                      const night = new Date(now);
+                      night.setHours(22, 0, 0, 0);
+                      setStartDate(evening);
+                      setEndDate(night);
+                    }}
+                  >
+                    Evening (6-10pm)
+                  </Chip>
+                  <Chip 
+                    mode="outlined" 
+                    style={styles.quickTimeChip}
+                    onPress={() => {
+                      const now = new Date();
+                      const morning = new Date(now);
+                      morning.setHours(8, 0, 0, 0);
+                      const noon = new Date(now);
+                      noon.setHours(12, 0, 0, 0);
+                      setStartDate(morning);
+                      setEndDate(noon);
+                    }}
+                  >
+                    Morning (8-12pm)
+                  </Chip>
+                </View>
               </View>
             </View>
           )}
@@ -591,5 +764,54 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     fontSize: 12,
     marginTop: 4,
+  },
+  timePickerContainer: {
+    marginBottom: 20,
+  },
+  timeLabel: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  timeChip: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  quickTimeOptions: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  quickTimeLabel: {
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#495057',
+  },
+  quickTimeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickTimeChip: {
+    marginRight: 4,
+    marginBottom: 4,
+  },
+  dateTimePickerContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 8,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
 });
