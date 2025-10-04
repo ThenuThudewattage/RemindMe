@@ -18,6 +18,11 @@ class ReminderRepository {
 
   public async initialize(): Promise<void> {
     await this.dbService.initialize();
+    
+    // Double-check that initialization was successful
+    if (!this.dbService.isReady()) {
+      throw new Error('Database initialization failed - database is not ready');
+    }
   }
 
   public async createReminder(input: CreateReminderInput): Promise<Reminder> {

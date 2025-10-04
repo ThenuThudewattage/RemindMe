@@ -1,151 +1,258 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Button, Text, Card, useTheme } from 'react-native-paper';
+import React, { useState } from 'react';
+import { View, StyleSheet, ImageBackground, ScrollView } from 'react-native';
+import { Text, Card, Button, IconButton, useTheme, Chip, Avatar, FAB, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { BRAND, space } from '../theme';
+import NotificationService from '../services/notifications'; // OPTIONAL: only if you want quick test action
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const navigateToReminders = () => {
-    router.push('/reminders/list');
-  };
-
-  const navigateToSettings = () => {
-    router.push('/settings');
-  };
+  const goReminders = () => router.push('/reminders/list');
+  const goSettings = () => router.push('/settings');
+  const goHistory = () => router.push('/history');
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text variant="displaySmall" style={[styles.title, { color: theme.colors.primary }]}>
-            RemindMe+
-          </Text>
-          <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Smart location and context-aware reminders
-          </Text>
+      {/* HERO — rich purple header with subtle noise/texture (uses a tiny base64 gradient or replace with your asset) */}
+      <ImageBackground
+        source={{
+          uri:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAADICAYAAADpAq3lAAAACXBIWXMAAAsSAAALEgHS3X78AAAAG0lEQVQ4y2NgYGBg+P//PwMDA0YwGJgYwJgBAA9bB3S6qf4yAAAAAElFTkSuQmCC',
+        }}
+        resizeMode="cover"
+        style={[styles.hero, { backgroundColor: BRAND.purple }]}
+        imageStyle={{ opacity: 0.15 }}
+      >
+        <View style={styles.heroTopRow}>
+          <Text variant="headlineLarge" style={styles.brandTitle}>RemindMe+</Text>
+          <IconButton icon="bell-outline" iconColor="white" onPress={goReminders} />
         </View>
 
-        <View style={styles.cards}>
-          <Card style={styles.card} mode="elevated" onPress={navigateToReminders}>
-            <Card.Content style={styles.cardContent}>
-              <Text variant="headlineSmall" style={styles.cardTitle}>
-                My Reminders
-              </Text>
-              <Text variant="bodyMedium" style={styles.cardDescription}>
-                View, create, and manage your smart reminders
-              </Text>
+    
+      </ImageBackground>
+
+      {/* CONTENT */}
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Quick Actions Card */}
+        <Card mode="elevated" style={styles.quickActionsCard}>
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <Text variant="titleMedium" style={styles.cardTitle}>Quick Actions</Text>
+              {<IconButton
+                icon="plus"
+                size={20}
+                iconColor={BRAND.purple}
+                onPress={goReminders}
+              /> }
+            </View>
+            <View style={styles.grid}>
+              <Tile
+                color="#7C4DFF" icon="clock-outline" label="Remind me later"
+                onPress={() => router.push('/reminders/edit?preset=time')}
+              />
+              <Tile
+                color="#7CB342" icon="map-marker" label="Wake me there"
+                onPress={() => router.push('/reminders/edit?preset=location')}
+              />
+              <Tile
+                color="#FFA000" icon="battery" label="Battery"
+                onPress={() => router.push('/reminders/edit?preset=battery')}
+              />
+              <Tile
+                color="#1E88E5" icon="checkbox-marked-outline" label="All"
+                onPress={() => router.push('/reminders/edit?preset=all')}
+              />
+            </View>
+          </Card.Content>
+        </Card>
+
+      {/* Metric Cards */}
+        <View style={styles.metricsRow}>
+          <Card mode="elevated" style={styles.metricCard}>
+            <Card.Content style={styles.metricContent}>
+              <Avatar.Icon size={40} icon="calendar-check" style={styles.metricAvatar} />
+              <View style={{ flex: 1 }}>
+                <Text variant="headlineSmall">4</Text>
+                <Text variant="bodySmall" style={styles.muted}>Upcoming today</Text>
+              </View>
             </Card.Content>
           </Card>
 
-          <Card style={styles.card} mode="elevated" onPress={navigateToSettings}>
-            <Card.Content style={styles.cardContent}>
-              <Text variant="headlineSmall" style={styles.cardTitle}>
-                Settings
-              </Text>
-              <Text variant="bodyMedium" style={styles.cardDescription}>
-                Configure permissions and app preferences
-              </Text>
+          <Card mode="elevated" style={styles.metricCard}>
+            <Card.Content style={styles.metricContent}>
+              <Avatar.Icon size={40} icon="map-marker-radius-outline" style={styles.metricAvatar} />
+              <View style={{ flex: 1 }}>
+                <Text variant="headlineSmall">3</Text>
+                <Text variant="bodySmall" style={styles.muted}>Active geofences</Text>
+              </View>
             </Card.Content>
           </Card>
         </View>
 
-        <View style={styles.quickActions}>
-          <Button
-            mode="contained"
-            onPress={navigateToReminders}
-            style={styles.primaryButton}
-            contentStyle={styles.buttonContent}
-          >
-            Get Started
-          </Button>
+        <View style={styles.metricsRow}>
+          <Card mode="elevated" style={styles.metricCardWide}>
+            <Card.Content style={[styles.metricContent, { gap: 12 }]}>
+              <Avatar.Icon size={40} icon="battery-50" style={styles.metricAvatar} />
+              <View style={{ flex: 1 }}>
+                <Text variant="titleMedium">Battery 52%</Text>
+                <Text variant="bodySmall" style={styles.muted}>Low-battery rules enabled</Text>
+              </View>
+              <Button compact onPress={goSettings}>Optimize</Button>
+            </Card.Content>
+          </Card>
         </View>
 
-        <View style={styles.features}>
-          <Text variant="titleMedium" style={styles.featuresTitle}>
-            Features
-          </Text>
-          <View style={styles.featureList}>
-            <Text variant="bodyMedium" style={styles.feature}>
-              📍 Location-based reminders with geofencing
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              ⏰ Time-based scheduling and conditions
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              🔋 Battery level-aware notifications
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              🔄 Background processing and monitoring
-            </Text>
-            <Text variant="bodyMedium" style={styles.feature}>
-              💾 Local storage with no cloud dependency
-            </Text>
-          </View>
-        </View>
-      </View>
+        <Card mode="outlined" style={{ marginTop: space(2) }}>
+          <Card.Content>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text variant="titleSmall">History</Text>
+              <Button mode="text" compact onPress={goHistory} textColor={BRAND.purple}>
+                View All
+              </Button>
+            </View>
+            <Text variant="bodySmall" style={styles.muted}>Snoozed “Pick up groceries” · 12m ago</Text>
+            <Text variant="bodySmall" style={styles.muted}>Fired “Team meeting” · 9:00 AM</Text>
+          </Card.Content>
+        </Card>
+      </ScrollView>
+      
+      {/* Floating Action Button */}
+      <FAB
+        icon="plus"
+        style={[styles.fab, { backgroundColor: BRAND.purple }]}
+        onPress={goReminders}
+        color="white"
+      />
     </SafeAreaView>
   );
 }
 
+
+/** small internal tile component to match the mock */
+function Tile({ color, icon, label, onPress }: {
+  color: string; icon: any; label: string; onPress: () => void;
+}) {
+  return (
+    <Card mode="elevated" style={styles.tileCard} onPress={onPress}>
+      <View style={styles.tileInner}>
+        <View style={[styles.tileIconWrap, { backgroundColor: `${color}1A` /* 10% tint */ }]}>
+          <MaterialCommunityIcons name={icon} size={30} color={color} />
+        </View>
+        <Text variant="titleMedium" style={styles.tileLabel}>{label}</Text>
+      </View>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  hero: {
+    paddingHorizontal: space(2),
+    paddingTop: space(3),
+    paddingBottom: space(3),
+    overflow: 'hidden',
   },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  header: {
+  heroTopRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 40,
-    marginTop: 20,
+    justifyContent: 'space-between',
   },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+  brandTitle: {
+    color: 'white',
+    fontWeight: '800',
   },
-  subtitle: {
-    textAlign: 'center',
-    maxWidth: 280,
+  heroSubtitle: { color: 'white', opacity: 0.95, marginTop: 6 },
+  bold: { fontWeight: '700' },
+  heroChips: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  heroChip: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  heroSearch: { marginTop: 18 },
+  searchInput: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
   },
-  cards: {
-    marginBottom: 30,
+  searchOutline: {
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1,
   },
-  card: {
-    marginBottom: 16,
+  searchContent: {
+    color: 'white',
   },
-  cardContent: {
-    paddingVertical: 20,
+  
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 80, // Above tab bar
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+
+  scrollView: { flex: 1 },
+  content: { paddingHorizontal: space(2), paddingTop: space(2), paddingBottom: space(3) },
+
+  metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  metricCard: { flex: 1, backgroundColor: 'white' },
+  metricCardWide: { flex: 1, backgroundColor: 'white' },
+  metricContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  metricAvatar: { backgroundColor: 'rgba(103,80,164,0.12)' },
+  muted: { opacity: 0.7 },
+
+  quickRow: { flexDirection: 'row', gap: 12 },
+  quickCard: { flex: 1 },
+  quickContent: { alignItems: 'center', gap: 8, paddingVertical: 12 },
+
+  // Quick Actions Card
+  quickActionsCard: {
+    marginBottom: space(2),
+    borderRadius: 12,
+    backgroundColor: 'white',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: space(1),
   },
   cardTitle: {
-    marginBottom: 8,
     fontWeight: '600',
   },
-  cardDescription: {
-    opacity: 0.7,
-  },
-  quickActions: {
-    marginBottom: 40,
-  },
-  primaryButton: {
-    marginBottom: 12,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  features: {
-    flex: 1,
-  },
-  featuresTitle: {
-    marginBottom: 16,
-    fontWeight: '600',
-  },
-  featureList: {
+
+  grid: {
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between',
     gap: 12,
   },
-  feature: {
-    lineHeight: 22,
+  tileCard: {
+    width: '48%',
+    borderRadius: 12,
+    elevation: 1,
+  },
+  tileInner: { 
+    alignItems: 'center', 
+    paddingVertical: 16, 
+    gap: 8 
+  },
+  tileIconWrap: {
+    width: 48, 
+    height: 48, 
+    borderRadius: 12,
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
+  tileLabel: { 
+    fontWeight: '500',
+    fontSize: 14,
   },
 });
