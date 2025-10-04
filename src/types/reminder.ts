@@ -11,6 +11,12 @@ export interface ReminderRule {
   battery?: {
     min?: number; // percentage 0-100
     max?: number; // percentage 0-100
+    type?: 'above' | 'below' | 'equals' | 'between'; // condition type
+    value?: number; // target percentage for above/below/equals
+    requireCharging?: boolean; // must be charging
+    requireUnplugged?: boolean; // must be unplugged
+    requireLowPowerMode?: boolean; // must be in low power mode
+    chargingState?: 'any' | 'charging' | 'unplugged' | 'full'; // specific charging state
   };
   options?: {
     repeat?: 'none' | 'daily' | 'weekly' | 'monthly';
@@ -68,6 +74,17 @@ export interface BatteryState {
   batteryLevel: number;
   batteryState: 'unknown' | 'unplugged' | 'charging' | 'full';
   lowPowerMode: boolean;
+}
+
+export interface BatteryCondition {
+  type: 'above' | 'below' | 'equals' | 'between';
+  value: number; // primary threshold (0-100)
+  maxValue?: number; // for 'between' type
+  requireCharging?: boolean;
+  requireUnplugged?: boolean;
+  requireLowPowerMode?: boolean;
+  chargingState?: 'any' | 'charging' | 'unplugged' | 'full';
+  description?: string; // human-readable description
 }
 
 export interface GeofenceRegion {

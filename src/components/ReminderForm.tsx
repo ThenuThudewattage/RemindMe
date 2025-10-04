@@ -15,6 +15,7 @@ import {
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import { CreateReminderInput, UpdateReminderInput, ReminderRule } from '../types/reminder';
+import BatteryService from '../services/battery';
 
 interface ReminderFormProps {
   initialValues?: UpdateReminderInput;
@@ -57,6 +58,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   const [batteryMax, setBatteryMax] = useState(initialValues?.rule?.battery?.max || 80);
   const [batteryMode, setBatteryMode] = useState<'range' | 'min' | 'max'>('range');
   
+  // Current battery level state
+  const [currentBatteryLevel, setCurrentBatteryLevel] = useState<string>('Loading...');
+  const [batteryStatus, setBatteryStatus] = useState<string>('Getting battery info...');
+  
   // Options state
   const [repeat, setRepeat] = useState(initialValues?.rule?.options?.repeat || 'none');
   const [cooldownMins, setCooldownMins] = useState(initialValues?.rule?.options?.cooldownMins || 10);
@@ -77,6 +82,44 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       }
     }
   }, [initialValues]);
+
+  useEffect(() => {
+    // Get current battery level when component mounts
+    const getBatteryLevel = async () => {
+      try {
+        const batteryService = BatteryService.getInstance();
+        await batteryService.initialize();
+        
+        const batteryState = await batteryService.getCurrentBatteryState();
+        const formatted = batteryService.getBatteryLevelFormatted();
+        const status = batteryService.getBatteryStatusDescription();
+        
+        setCurrentBatteryLevel(formatted);
+        setBatteryStatus(status);
+        
+        // Set up battery monitoring for real-time updates
+        batteryService.setBatteryChangeCallback((newBatteryState) => {
+          const newFormatted = batteryService.getBatteryLevelFormatted();
+          const newStatus = batteryService.getBatteryStatusDescription();
+          setCurrentBatteryLevel(newFormatted);
+          setBatteryStatus(newStatus);
+        });
+        
+      } catch (error) {
+        console.error('Error getting battery level:', error);
+        setCurrentBatteryLevel('Unknown');
+        setBatteryStatus('Unable to get battery info');
+      }
+    };
+    
+    getBatteryLevel();
+    
+    // Cleanup on unmount
+    return () => {
+      const batteryService = BatteryService.getInstance();
+      batteryService.removeBatteryChangeCallback();
+    };
+  }, []);
 
   const getCurrentLocation = async () => {
     try {
@@ -184,6 +227,20 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const getBatteryColorBasedOnLevel = (): string => {
+    // Extract numeric value from currentBatteryLevel (e.g., "75%" -> 75)
+    const levelStr = currentBatteryLevel.replace('%', '');
+    const level = parseInt(levelStr, 10);
+    
+    if (isNaN(level)) return theme.colors.primary;
+    
+    if (level <= 10) return '#ff4444'; // Red for very low
+    if (level <= 20) return '#ff8800'; // Orange for low
+    if (level <= 50) return '#ffcc00'; // Yellow for medium
+    if (level <= 80) return '#44aa44'; // Green for good
+    return '#00aa44'; // Dark green for high
   };
 
   return (
@@ -301,6 +358,28 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           <View style={styles.conditionHeader}>
             <Text variant="titleMedium">Battery Condition</Text>
             <Switch value={hasBatteryCondition} onValueChange={setHasBatteryCondition} />
+          </View>
+          
+          {/* Current Battery Level Display */}
+          <View style={styles.currentBatteryContainer}>
+            <View style={styles.batteryInfoRow}>
+              <Text variant="bodyMedium" style={styles.batteryLabel}>
+                Current Battery:
+              </Text>
+              <Chip 
+                icon="battery" 
+                style={[
+                  styles.batteryChip,
+                  { backgroundColor: getBatteryColorBasedOnLevel() }
+                ]}
+                textStyle={{ color: '#fff', fontWeight: 'bold' }}
+              >
+                {currentBatteryLevel}
+              </Chip>
+            </View>
+            <Text variant="bodySmall" style={styles.batteryStatusText}>
+              {batteryStatus}
+            </Text>
           </View>
           
           {hasBatteryCondition && (
@@ -483,5 +562,34 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginLeft: 8,
+  },
+  currentBatteryContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  batteryInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  batteryLabel: {
+    fontWeight: '500',
+    color: '#495057',
+  },
+  batteryChip: {
+    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  batteryStatusText: {
+    color: '#6c757d',
+    fontSize: 12,
+    marginTop: 4,
   },
 });

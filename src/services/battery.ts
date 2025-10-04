@@ -1,5 +1,5 @@
 import * as Battery from 'expo-battery';
-import { BatteryState } from '../types/reminder';
+import { BatteryState, BatteryCondition } from '../types/reminder';
 import { ContextEngine } from './contextEngine';
 
 class BatteryService {
@@ -20,7 +20,8 @@ class BatteryService {
   public async initialize(): Promise<void> {
     try {
       await this.updateBatteryState();
-      console.log('Battery service initialized');
+      await this.startBatteryMonitoring();
+      console.log('Battery service initialized with monitoring enabled');
     } catch (error) {
       console.error('Failed to initialize battery service:', error);
     }
@@ -201,6 +202,172 @@ class BatteryService {
       state: batteryState.batteryState,
       lowPowerMode: batteryState.lowPowerMode,
       isCharging: batteryState.batteryState === 'charging',
+    };
+  }
+
+  /**
+   * Get formatted battery level for display
+   */
+  public getBatteryLevelFormatted(): string {
+    if (!this.currentBatteryState) return 'Unknown';
+    return `${this.currentBatteryState.batteryLevel}%`;
+  }
+
+  /**
+   * Get battery status description for UI
+   */
+  public getBatteryStatusDescription(): string {
+    if (!this.currentBatteryState) return 'Battery status unknown';
+    
+    const { batteryLevel, batteryState, lowPowerMode } = this.currentBatteryState;
+    
+    let status = `${batteryLevel}% `;
+    
+    switch (batteryState) {
+      case 'charging':
+        status += 'Charging';
+        break;
+      case 'full':
+        status += 'Full';
+        break;
+      case 'unplugged':
+        status += 'Unplugged';
+        break;
+      default:
+        status += 'Unknown';
+    }
+    
+    if (lowPowerMode) {
+      status += ' (Low Power Mode)';
+    }
+    
+    return status;
+  }
+
+  /**
+   * Check if battery level meets condition for notifications
+   */
+  public checkBatteryCondition(condition: BatteryCondition): boolean {
+    if (!this.currentBatteryState) return false;
+    
+    const { batteryLevel, batteryState, lowPowerMode } = this.currentBatteryState;
+    
+    // Check charging state requirement
+    if (condition.chargingState && condition.chargingState !== 'any') {
+      if (batteryState !== condition.chargingState) return false;
+    }
+    
+    // Check specific charging requirements
+    if (condition.requireCharging !== undefined) {
+      const isCharging = batteryState === 'charging';
+      if (condition.requireCharging !== isCharging) return false;
+    }
+    
+    if (condition.requireUnplugged !== undefined) {
+      const isUnplugged = batteryState === 'unplugged';
+      if (condition.requireUnplugged !== isUnplugged) return false;
+    }
+    
+    // Check low power mode requirement
+    if (condition.requireLowPowerMode !== undefined) {
+      if (condition.requireLowPowerMode !== lowPowerMode) return false;
+    }
+    
+    // Check battery level condition
+    switch (condition.type) {
+      case 'above':
+        return batteryLevel > condition.value;
+      case 'below':
+        return batteryLevel < condition.value;
+      case 'equals':
+        return batteryLevel === condition.value;
+      case 'between':
+        if (condition.maxValue === undefined) return false;
+        return batteryLevel >= condition.value && batteryLevel <= condition.maxValue;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Get suggested battery thresholds for notifications
+   */
+  public getBatteryThresholdSuggestions(): Array<{
+    label: string;
+    value: number;
+    description: string;
+  }> {
+    return [
+      { label: 'Critical (5%)', value: 5, description: 'Battery critically low' },
+      { label: 'Very Low (10%)', value: 10, description: 'Battery very low' },
+      { label: 'Low (20%)', value: 20, description: 'Battery low' },
+      { label: 'Medium (50%)', value: 50, description: 'Battery at half' },
+      { label: 'High (80%)', value: 80, description: 'Battery high' },
+      { label: 'Nearly Full (90%)', value: 90, description: 'Battery nearly full' },
+      { label: 'Full (100%)', value: 100, description: 'Battery full' },
+    ];
+  }
+
+  /**
+   * Monitor battery for specific conditions and trigger callback
+   */
+  public monitorBatteryCondition(
+    condition: BatteryCondition,
+    callback: (batteryState: BatteryState) => void
+  ): void {
+    const wrappedCallback = (batteryState: BatteryState) => {
+      if (this.checkBatteryCondition(condition)) {
+        callback(batteryState);
+      }
+    };
+    
+    this.setBatteryChangeCallback(wrappedCallback);
+  }
+
+  /**
+   * Create predefined battery conditions for easy use
+   */
+  public static createBatteryConditions(): Record<string, BatteryCondition> {
+    return {
+      lowBattery: {
+        type: 'below',
+        value: 20,
+        description: 'Battery below 20%'
+      },
+      criticalBattery: {
+        type: 'below',
+        value: 10,
+        description: 'Battery critically low (below 10%)'
+      },
+      fullBattery: {
+        type: 'equals',
+        value: 100,
+        description: 'Battery fully charged'
+      },
+      chargingStarted: {
+        type: 'above',
+        value: 0,
+        requireCharging: true,
+        description: 'Device started charging'
+      },
+      chargingCompleted: {
+        type: 'equals',
+        value: 100,
+        requireCharging: false,
+        description: 'Charging completed'
+      },
+      batteryHealthy: {
+        type: 'between',
+        value: 30,
+        maxValue: 80,
+        description: 'Battery in healthy range (30-80%)'
+      },
+      lowPowerModeEnabled: {
+        type: 'above',
+        value: 0,
+        requireLowPowerMode: true,
+        description: 'Low power mode is enabled'
+      }
     };
   }
 }
