@@ -286,16 +286,65 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   };
 
   const onStartTimeChange = (event: any, selectedDate?: Date) => {
-    setShowStartTimePicker(false);
+    // On Android, event.type === 'dismissed' means user cancelled
+    // On Android, event.type === 'set' means user confirmed
+    // On iOS, we get continuous updates while scrolling
+    
+    if (Platform.OS === 'android') {
+      setShowStartTimePicker(false);
+    }
+    
     if (selectedDate) {
       setStartDate(selectedDate);
+      
+      // Validate: Start time must be before end time
+      if (selectedDate >= endDate) {
+        // If start time is not before end time, automatically adjust end time
+        const newEndTime = new Date(selectedDate.getTime() + 60 * 60 * 1000); // Add 1 hour
+        setEndDate(newEndTime);
+        
+        // Show feedback to user
+        Alert.alert(
+          'Time Adjusted', 
+          'End time has been automatically set to 1 hour after start time to maintain a valid time range.',
+          [{ text: 'OK' }]
+        );
+      }
+    }
+    
+    // Hide picker if user cancelled or confirmed on Android
+    if (Platform.OS === 'android' && event.type === 'dismissed') {
+      return; // Don't update the date if cancelled
     }
   };
 
   const onEndTimeChange = (event: any, selectedDate?: Date) => {
-    setShowEndTimePicker(false);
+    // On Android, event.type === 'dismissed' means user cancelled
+    // On Android, event.type === 'set' means user confirmed
+    // On iOS, we get continuous updates while scrolling
+    
+    if (Platform.OS === 'android') {
+      setShowEndTimePicker(false);
+    }
+    
     if (selectedDate) {
+      // Validate: End time must be after start time
+      if (selectedDate <= startDate) {
+        // Show error and don't update if end time is not after start time
+        Alert.alert(
+          'Invalid Time Range', 
+          'End time must be later than start time. Please select a time after ' + startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
       setEndDate(selectedDate);
+    }
+    
+    // Hide picker if user cancelled or confirmed on Android
+    if (Platform.OS === 'android' && event && event.type === 'dismissed') {
+      return; // Don't update the date if cancelled
     }
   };
 
@@ -381,6 +430,20 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               {/* Start Time Picker - positioned right after start time display */}
               {showStartTimePicker && (
                 <View style={styles.dateTimePickerContainer}>
+                  {Platform.OS === 'ios' && (
+                    <View style={styles.pickerHeader}>
+                      <Text variant="titleSmall" style={styles.pickerTitle}>
+                        Select {timePickerMode === 'date' ? 'Date' : 'Time'}
+                      </Text>
+                      <Button 
+                        mode="text" 
+                        onPress={() => setShowStartTimePicker(false)}
+                        style={styles.doneButton}
+                      >
+                        Done
+                      </Button>
+                    </View>
+                  )}
                   <DateTimePicker
                     value={startDate}
                     mode={timePickerMode}
@@ -414,6 +477,20 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               {/* End Time Picker - positioned right after end time display */}
               {showEndTimePicker && (
                 <View style={styles.dateTimePickerContainer}>
+                  {Platform.OS === 'ios' && (
+                    <View style={styles.pickerHeader}>
+                      <Text variant="titleSmall" style={styles.pickerTitle}>
+                        Select {timePickerMode === 'date' ? 'Date' : 'Time'}
+                      </Text>
+                      <Button 
+                        mode="text" 
+                        onPress={() => setShowEndTimePicker(false)}
+                        style={styles.doneButton}
+                      >
+                        Done
+                      </Button>
+                    </View>
+                  )}
                   <DateTimePicker
                     value={endDate}
                     mode={timePickerMode}
@@ -813,5 +890,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    marginBottom: 8,
+  },
+  pickerTitle: {
+    fontWeight: '600',
+    color: '#333',
+  },
+  doneButton: {
+    minWidth: 60,
   },
 });
