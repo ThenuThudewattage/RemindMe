@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ImageBackground, ScrollView } from 'react-native';
 import { Text, Card, Button, IconButton, useTheme, Chip, Avatar, FAB, TextInput } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BRAND, space } from '../theme';
 import NotificationService from '../services/notifications'; // OPTIONAL: only if you want quick test action
@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [batteryState, setBatteryState] = useState<BatteryState | null>(null);
 
@@ -106,7 +107,7 @@ export default function HomeScreen() {
       {/* CONTENT */}
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(80, insets.bottom + 16) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Quick Actions Card */}
@@ -210,7 +211,7 @@ export default function HomeScreen() {
       {/* Floating Action Button */}
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: BRAND.purple }]}
+        style={[styles.fab, { backgroundColor: BRAND.purple, bottom: insets.bottom ? insets.bottom + 16 : 80 }]}
         onPress={goReminders}
         color="white"
       />

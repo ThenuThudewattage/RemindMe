@@ -1,17 +1,24 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { useTheme } from 'react-native-paper';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function RootTabsLayout() {
+function InnerTabs() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarStyle: { height: 60, paddingBottom: 10, paddingTop: 6 },
+        // Respect device safe area so the tab bar doesn't overlap system UI
+        tabBarStyle: {
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom ? insets.bottom + 10 : 10,
+          paddingTop: 6,
+        },
         tabBarLabelStyle: { fontSize: 12 },
       }}
     >
@@ -55,5 +62,13 @@ export default function RootTabsLayout() {
         }}
       />
     </Tabs>
+  );
+}
+
+export default function RootTabsLayout() {
+  return (
+    <SafeAreaProvider>
+      <InnerTabs />
+    </SafeAreaProvider>
   );
 }

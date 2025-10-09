@@ -22,8 +22,8 @@ class BackgroundService {
 
   public async initialize(): Promise<void> {
     try {
-      // Note: expo-background-fetch is deprecated, but we'll handle it gracefully
-      console.warn('Background fetch is using deprecated API - consider upgrading to expo-background-task');
+      // Note: expo-background-fetch is deprecated in favor of expo-task-manager
+      // This warning is expected and the app will continue to work normally
       await this.defineBackgroundTasks();
       await this.registerBackgroundFetch();
       console.log('Background service initialized');
