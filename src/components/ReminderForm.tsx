@@ -164,7 +164,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   // getCurrentLocation function removed - replaced by MapPicker component
 
   const openMapPicker = () => {
-    const params: any = {};
+    const params: any = {
+      isEditing: isEditing ? 'true' : 'false',
+      preset: preset || undefined, // Pass the preset context
+    };
     
     if (locationTrigger) {
       params.latitude = locationTrigger.latitude.toString();

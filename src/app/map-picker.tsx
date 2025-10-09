@@ -7,6 +7,11 @@ import { locationSelectionService } from '../services/locationSelection';
 export default function MapPickerScreen() {
   const params = useLocalSearchParams();
   
+  // Check if this is for editing an existing reminder or creating a new one
+  const isEditing = params.isEditing === 'true';
+  // Get the preset context (location-only vs all-in-one form)
+  const preset = params.preset as string | undefined;
+  
   // Parse initial location if provided
   let initialLocation: {
     latitude: number;
@@ -30,9 +35,20 @@ export default function MapPickerScreen() {
     // Emit the location selection to subscribers
     locationSelectionService.selectLocation(locationTrigger);
     
-    // Navigate back to the form
-    if (router.canGoBack()) {
-      router.back();
+    if (isEditing) {
+      // If editing, go back to the edit form (preserves the original form type)
+      if (router.canGoBack()) {
+        router.back();
+      }
+    } else {
+      // If creating new reminder, navigate based on preset
+      if (preset === 'location') {
+        // For "Wake Me There" - stay in location-only form
+        router.push('/reminders/edit?preset=location');
+      } else {
+        // For "All in One" or other forms - go to full form
+        router.push('/reminders/edit');
+      }
     }
   };
 

@@ -113,12 +113,15 @@ export default function EditReminderScreen() {
     try {
       if (isEditing && 'id' in data) {
         await repo.updateReminder(data as UpdateReminderInput);
-        Alert.alert('Success', 'Reminder updated successfully');
+        Alert.alert('Success', 'Reminder updated successfully', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
       } else {
         await repo.createReminder(data as CreateReminderInput);
-        Alert.alert('Success', 'Reminder created successfully');
+        Alert.alert('Success', 'Reminder created successfully', [
+          { text: 'OK', onPress: () => router.push('/reminders/list') }
+        ]);
       }
-      router.back();
     } catch (error) {
       console.error('Error saving reminder:', error);
       Alert.alert('Error', 'Failed to save reminder');
