@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { 
   TextInput, 
   Button, 
@@ -50,6 +50,24 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     initialValues?.rule?.time?.end ? new Date(initialValues.rule.time.end) : new Date()
   );
   
+  // Time editing state
+  const [editingStartTime, setEditingStartTime] = useState(false);
+  const [editingEndTime, setEditingEndTime] = useState(false);
+  const [tempStartHour, setTempStartHour] = useState(startDate.getHours());
+  const [tempStartMinute, setTempStartMinute] = useState(startDate.getMinutes());
+  const [tempEndHour, setTempEndHour] = useState(endDate.getHours());
+  const [tempEndMinute, setTempEndMinute] = useState(endDate.getMinutes());
+  
+  // Date editing state
+  const [editingStartDate, setEditingStartDate] = useState(false);
+  const [editingEndDate, setEditingEndDate] = useState(false);
+  const [tempStartDay, setTempStartDay] = useState(startDate.getDate());
+  const [tempStartMonth, setTempStartMonth] = useState(startDate.getMonth());
+  const [tempStartYear, setTempStartYear] = useState(startDate.getFullYear());
+  const [tempEndDay, setTempEndDay] = useState(endDate.getDate());
+  const [tempEndMonth, setTempEndMonth] = useState(endDate.getMonth());
+  const [tempEndYear, setTempEndYear] = useState(endDate.getFullYear());
+  
   // Location condition state
   const [hasLocationCondition, setHasLocationCondition] = useState(!!(initialValues?.rule?.location));
   const [locationRadius, setLocationRadius] = useState(initialValues?.rule?.location?.radius || 100);
@@ -81,6 +99,20 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       }
     }
 
+    // Sync temp time values with actual dates
+    setTempStartHour(startDate.getHours());
+    setTempStartMinute(startDate.getMinutes());
+    setTempEndHour(endDate.getHours());
+    setTempEndMinute(endDate.getMinutes());
+    
+    // Sync temp date values with actual dates
+    setTempStartDay(startDate.getDate());
+    setTempStartMonth(startDate.getMonth());
+    setTempStartYear(startDate.getFullYear());
+    setTempEndDay(endDate.getDate());
+    setTempEndMonth(endDate.getMonth());
+    setTempEndYear(endDate.getFullYear());
+
     // Handle preset initialization
     if (preset && !initialValues) {
       if (preset === 'time') {
@@ -96,7 +128,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         setTitle('New reminder');
       }
     }
-  }, [initialValues, preset]);
+  }, [initialValues, preset, startDate, endDate]);
 
   const getCurrentLocation = async () => {
     try {
@@ -197,6 +229,16 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       return;
     }
 
+    // Validate date order for time conditions
+    if (hasTimeCondition && !validateDateOrder(startDate, endDate)) {
+      Alert.alert(
+        'Invalid Date Range', 
+        'Start date and time must be earlier than end date and time. Please adjust your time condition.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const reminderData = {
@@ -221,6 +263,136 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const getMonthName = (monthIndex: number): string => {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return months[monthIndex];
+  };
+
+  const getDaysInMonth = (month: number, year: number): number => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getCurrentYear = (): number => {
+    return new Date().getFullYear();
+  };
+
+  const validateDateOrder = (startDateTime: Date, endDateTime: Date): boolean => {
+    return startDateTime < endDateTime;
+  };
+
+  const showDateOrderError = () => {
+    Alert.alert(
+      'Invalid Date Range', 
+      'Start date and time must be earlier than end date and time.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const updateStartTime = (hour: number, minute: number) => {
+    const newDate = new Date(startDate);
+    newDate.setHours(hour, minute);
+    setStartDate(newDate);
+  };
+
+  const updateEndTime = (hour: number, minute: number) => {
+    const newDate = new Date(endDate);
+    newDate.setHours(hour, minute);
+    setEndDate(newDate);
+  };
+
+  const updateStartDate = (day: number, month: number, year: number) => {
+    const newDate = new Date(startDate);
+    newDate.setFullYear(year, month, day);
+    setStartDate(newDate);
+  };
+
+  const updateEndDate = (day: number, month: number, year: number) => {
+    const newDate = new Date(endDate);
+    newDate.setFullYear(year, month, day);
+    setEndDate(newDate);
+  };
+
+  const saveStartTime = () => {
+    const newStartDate = new Date(startDate);
+    newStartDate.setHours(tempStartHour, tempStartMinute);
+    
+    if (!validateDateOrder(newStartDate, endDate)) {
+      showDateOrderError();
+      return;
+    }
+    
+    updateStartTime(tempStartHour, tempStartMinute);
+    setEditingStartTime(false);
+  };
+
+  const saveEndTime = () => {
+    const newEndDate = new Date(endDate);
+    newEndDate.setHours(tempEndHour, tempEndMinute);
+    
+    if (!validateDateOrder(startDate, newEndDate)) {
+      showDateOrderError();
+      return;
+    }
+    
+    updateEndTime(tempEndHour, tempEndMinute);
+    setEditingEndTime(false);
+  };
+
+  const saveStartDate = () => {
+    const newStartDate = new Date(startDate);
+    newStartDate.setFullYear(tempStartYear, tempStartMonth, tempStartDay);
+    
+    if (!validateDateOrder(newStartDate, endDate)) {
+      showDateOrderError();
+      return;
+    }
+    
+    updateStartDate(tempStartDay, tempStartMonth, tempStartYear);
+    setEditingStartDate(false);
+  };
+
+  const saveEndDate = () => {
+    const newEndDate = new Date(endDate);
+    newEndDate.setFullYear(tempEndYear, tempEndMonth, tempEndDay);
+    
+    if (!validateDateOrder(startDate, newEndDate)) {
+      showDateOrderError();
+      return;
+    }
+    
+    updateEndDate(tempEndDay, tempEndMonth, tempEndYear);
+    setEditingEndDate(false);
+  };
+
+  const cancelStartTimeEdit = () => {
+    setTempStartHour(startDate.getHours());
+    setTempStartMinute(startDate.getMinutes());
+    setEditingStartTime(false);
+  };
+
+  const cancelEndTimeEdit = () => {
+    setTempEndHour(endDate.getHours());
+    setTempEndMinute(endDate.getMinutes());
+    setEditingEndTime(false);
+  };
+
+  const cancelStartDateEdit = () => {
+    setTempStartDay(startDate.getDate());
+    setTempStartMonth(startDate.getMonth());
+    setTempStartYear(startDate.getFullYear());
+    setEditingStartDate(false);
+  };
+
+  const cancelEndDateEdit = () => {
+    setTempEndDay(endDate.getDate());
+    setTempEndMonth(endDate.getMonth());
+    setTempEndYear(endDate.getFullYear());
+    setEditingEndDate(false);
   };
 
   const shouldShowSection = (section: 'time' | 'location' | 'battery' | 'options'): boolean => {
@@ -281,18 +453,438 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 Reminder will only trigger between these times
               </Text>
               
-              <View style={styles.dateContainer}>
-                <Text variant="labelMedium">Start Time</Text>
-                <Chip onPress={() => {/* TODO: Show date picker */}}>
-                  {formatDate(startDate)}
-                </Chip>
+    
+              
+              {/* Start Date & Time */}
+              <View style={styles.timeEditContainer}>
+                <View style={styles.timeHeader}>
+                  <Text variant="labelMedium">Start Date & Time</Text>
+                  <View style={styles.editButtonsContainer}>
+                    <IconButton 
+                      icon={editingStartDate ? "close" : "calendar"} 
+                      size={16}
+                      onPress={() => {
+                        if (editingStartDate) {
+                          cancelStartDateEdit();
+                        } else {
+                          setEditingStartDate(true);
+                        }
+                      }}
+                    />
+                    <IconButton 
+                      icon={editingStartTime ? "close" : "clock"} 
+                      size={16}
+                      onPress={() => {
+                        if (editingStartTime) {
+                          cancelStartTimeEdit();
+                        } else {
+                          setEditingStartTime(true);
+                        }
+                      }}
+                    />
+                  </View>
+                </View>
+                
+                {!editingStartDate && !editingStartTime ? (
+                  <Chip onPress={() => setEditingStartTime(true)}>
+                    {formatDate(startDate)}
+                  </Chip>
+                ) : null}
+                
+                {/* Date Picker */}
+                {editingStartDate && (
+                  <View style={styles.datePickerSection}>
+                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Date</Text>
+                    <View style={styles.datePickerContainer}>
+                      <View style={styles.datePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Month</Text>
+                        <ScrollView 
+                          style={styles.dateScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempStartMonth(i)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempStartMonth === i && styles.selectedTimeText
+                                ]}
+                              >
+                                {getMonthName(i)}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                      
+                      <View style={styles.datePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Day</Text>
+                        <ScrollView 
+                          style={styles.dateScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: getDaysInMonth(tempStartMonth, tempStartYear) }, (_, i) => (
+                            <TouchableOpacity key={i + 1} style={styles.timeItem} onPress={() => setTempStartDay(i + 1)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempStartDay === (i + 1) && styles.selectedTimeText
+                                ]}
+                              >
+                                {(i + 1).toString().padStart(2, '0')}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                      
+                      <View style={styles.datePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Year</Text>
+                        <ScrollView 
+                          style={styles.dateScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 10 }, (_, i) => {
+                            const year = getCurrentYear() + i;
+                            return (
+                              <TouchableOpacity key={year} style={styles.timeItem} onPress={() => setTempStartYear(year)}>
+                                <Text 
+                                  variant="titleMedium" 
+                                  style={[
+                                    styles.timeText,
+                                    tempStartYear === year && styles.selectedTimeText
+                                  ]}
+                                >
+                                  {year}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.timeActions}>
+                      <Button 
+                        mode="outlined" 
+                        compact 
+                        onPress={cancelStartDateEdit}
+                        style={styles.timeActionButton}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        mode="contained" 
+                        compact 
+                        onPress={saveStartDate}
+                        style={styles.timeActionButton}
+                      >
+                        Save
+                      </Button>
+                    </View>
+                  </View>
+                )}
+                
+                {/* Time Picker */}
+                {editingStartTime && (
+                  <View style={styles.timePickerSection}>
+                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Time</Text>
+                    <View style={styles.timePickerContainer}>
+                      <View style={styles.timePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Hour</Text>
+                        <ScrollView 
+                          style={styles.timeScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempStartHour(i)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempStartHour === i && styles.selectedTimeText
+                                ]}
+                              >
+                                {i.toString().padStart(2, '0')}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                      
+                      <Text variant="titleLarge" style={styles.timeSeparator}>:</Text>
+                      
+                      <View style={styles.timePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Minute</Text>
+                        <ScrollView 
+                          style={styles.timeScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 60 }, (_, i) => (
+                            <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempStartMinute(i)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempStartMinute === i && styles.selectedTimeText
+                                ]}
+                              >
+                                {i.toString().padStart(2, '0')}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.timeActions}>
+                      <Button 
+                        mode="outlined" 
+                        compact 
+                        onPress={cancelStartTimeEdit}
+                        style={styles.timeActionButton}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        mode="contained" 
+                        compact 
+                        onPress={saveStartTime}
+                        style={styles.timeActionButton}
+                      >
+                        Save
+                      </Button>
+                    </View>
+                  </View>
+                )}
               </View>
               
-              <View style={styles.dateContainer}>
-                <Text variant="labelMedium">End Time</Text>
-                <Chip onPress={() => {/* TODO: Show date picker */}}>
-                  {formatDate(endDate)}
-                </Chip>
+              {/* End Date & Time */}
+              <View style={styles.timeEditContainer}>
+                <View style={styles.timeHeader}>
+                  <Text variant="labelMedium">End Date & Time</Text>
+                  <View style={styles.editButtonsContainer}>
+                    <IconButton 
+                      icon={editingEndDate ? "close" : "calendar"} 
+                      size={16}
+                      onPress={() => {
+                        if (editingEndDate) {
+                          cancelEndDateEdit();
+                        } else {
+                          setEditingEndDate(true);
+                        }
+                      }}
+                    />
+                    <IconButton 
+                      icon={editingEndTime ? "close" : "clock"} 
+                      size={16}
+                      onPress={() => {
+                        if (editingEndTime) {
+                          cancelEndTimeEdit();
+                        } else {
+                          setEditingEndTime(true);
+                        }
+                      }}
+                    />
+                  </View>
+                </View>
+                
+                {!editingEndDate && !editingEndTime ? (
+                  <Chip onPress={() => setEditingEndTime(true)}>
+                    {formatDate(endDate)}
+                  </Chip>
+                ) : null}
+                
+                {/* Date Picker */}
+                {editingEndDate && (
+                  <View style={styles.datePickerSection}>
+                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Date</Text>
+                    <View style={styles.datePickerContainer}>
+                      <View style={styles.datePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Month</Text>
+                        <ScrollView 
+                          style={styles.dateScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempEndMonth(i)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempEndMonth === i && styles.selectedTimeText
+                                ]}
+                              >
+                                {getMonthName(i)}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                      
+                      <View style={styles.datePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Day</Text>
+                        <ScrollView 
+                          style={styles.dateScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: getDaysInMonth(tempEndMonth, tempEndYear) }, (_, i) => (
+                            <TouchableOpacity key={i + 1} style={styles.timeItem} onPress={() => setTempEndDay(i + 1)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempEndDay === (i + 1) && styles.selectedTimeText
+                                ]}
+                              >
+                                {(i + 1).toString().padStart(2, '0')}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                      
+                      <View style={styles.datePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Year</Text>
+                        <ScrollView 
+                          style={styles.dateScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 10 }, (_, i) => {
+                            const year = getCurrentYear() + i;
+                            return (
+                              <TouchableOpacity key={year} style={styles.timeItem} onPress={() => setTempEndYear(year)}>
+                                <Text 
+                                  variant="titleMedium" 
+                                  style={[
+                                    styles.timeText,
+                                    tempEndYear === year && styles.selectedTimeText
+                                  ]}
+                                >
+                                  {year}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.timeActions}>
+                      <Button 
+                        mode="outlined" 
+                        compact 
+                        onPress={cancelEndDateEdit}
+                        style={styles.timeActionButton}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        mode="contained" 
+                        compact 
+                        onPress={saveEndDate}
+                        style={styles.timeActionButton}
+                      >
+                        Save
+                      </Button>
+                    </View>
+                  </View>
+                )}
+                
+                {/* Time Picker */}
+                {editingEndTime && (
+                  <View style={styles.timePickerSection}>
+                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Time</Text>
+                    <View style={styles.timePickerContainer}>
+                      <View style={styles.timePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Hour</Text>
+                        <ScrollView 
+                          style={styles.timeScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempEndHour(i)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempEndHour === i && styles.selectedTimeText
+                                ]}
+                              >
+                                {i.toString().padStart(2, '0')}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                      
+                      <Text variant="titleLarge" style={styles.timeSeparator}>:</Text>
+                      
+                      <View style={styles.timePicker}>
+                        <Text variant="bodySmall" style={styles.timePickerLabel}>Minute</Text>
+                        <ScrollView 
+                          style={styles.timeScrollView}
+                          showsVerticalScrollIndicator={false}
+                          snapToInterval={40}
+                          decelerationRate="fast"
+                        >
+                          {Array.from({ length: 60 }, (_, i) => (
+                            <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempEndMinute(i)}>
+                              <Text 
+                                variant="titleMedium" 
+                                style={[
+                                  styles.timeText,
+                                  tempEndMinute === i && styles.selectedTimeText
+                                ]}
+                              >
+                                {i.toString().padStart(2, '0')}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.timeActions}>
+                      <Button 
+                        mode="outlined" 
+                        compact 
+                        onPress={cancelEndTimeEdit}
+                        style={styles.timeActionButton}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        mode="contained" 
+                        compact 
+                        onPress={saveEndTime}
+                        style={styles.timeActionButton}
+                      >
+                        Save
+                      </Button>
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -512,8 +1104,117 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#666',
   },
+  warningContainer: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffeaa7',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  warningText: {
+    color: '#856404',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   dateContainer: {
     marginBottom: 12,
+  },
+  timeEditContainer: {
+    marginBottom: 20,
+  },
+  timeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  editButtonsContainer: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  datePickerSection: {
+    marginBottom: 16,
+  },
+  pickerSectionLabel: {
+    marginBottom: 12,
+    fontWeight: '600',
+    color: '#666',
+    textAlign: 'center',
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  datePicker: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  dateScrollView: {
+    height: 120,
+    width: 70,
+  },
+  timePickerSection: {
+    marginBottom: 16,
+  },
+  timePickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  timePicker: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  timePickerLabel: {
+    marginBottom: 8,
+    opacity: 0.7,
+  },
+  timeScrollView: {
+    height: 120,
+    width: 60,
+  },
+  timeItem: {
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  timeText: {
+    color: '#666',
+    textAlign: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 50,
+  },
+  selectedTimeText: {
+    color: '#6750a4',
+    backgroundColor: '#e8def8',
+    fontWeight: '600',
+  },
+  timeSeparator: {
+    marginHorizontal: 16,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  timeActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  timeActionButton: {
+    flex: 1,
   },
   locationButton: {
     marginBottom: 12,

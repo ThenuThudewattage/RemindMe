@@ -1,15 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ImageBackground, ScrollView } from 'react-native';
 import { Text, Card, Button, IconButton, useTheme, Chip, Avatar, FAB, TextInput } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BRAND, space } from '../theme';
 import NotificationService from '../services/notifications'; // OPTIONAL: only if you want quick test action
+import BatteryService from '../services/battery';
+import { BatteryState } from '../types/reminder';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
+  const [batteryState, setBatteryState] = useState<BatteryState | null>(null);
+
+  // Initialize battery service and get current battery state
+  useEffect(() => {
+    const initializeBattery = async () => {
+      try {
+        const batteryService = BatteryService.getInstance();
+        await batteryService.initialize();
+        
+        // Get initial battery state
+        const currentState = await batteryService.getCurrentBatteryState();
+        setBatteryState(currentState);
+        
+        // Set up battery change callback
+        batteryService.setBatteryChangeCallback((newState: BatteryState) => {
+          setBatteryState(newState);
+        });
+        
+        // Start monitoring
+        await batteryService.startBatteryMonitoring();
+      } catch (error) {
+        console.error('Failed to initialize battery service:', error);
+      }
+    };
+
+    initializeBattery();
+
+    // Cleanup on unmount
+    return () => {
+      const batteryService = BatteryService.getInstance();
+      batteryService.removeBatteryChangeCallback();
+      batteryService.stopBatteryMonitoring();
+    };
+  }, []);
+
+  const getBatteryIcon = () => {
+    if (!batteryState) return 'battery-50';
+    
+    const level = batteryState.batteryLevel;
+    const isCharging = batteryState.batteryState === 'charging';
+    
+    if (isCharging) {
+      if (level >= 90) return 'battery-charging-100';
+      if (level >= 70) return 'battery-charging-80';
+      if (level >= 50) return 'battery-charging-60';
+      if (level >= 30) return 'battery-charging-40';
+      if (level >= 10) return 'battery-charging-20';
+      return 'battery-charging-outline';
+    }
+    
+    if (level >= 90) return 'battery';
+    if (level >= 70) return 'battery-80';
+    if (level >= 50) return 'battery-60';
+    if (level >= 30) return 'battery-40';
+    if (level >= 10) return 'battery-20';
+    return 'battery-outline';
+  };
+
+  const getBatteryColor = () => {
+    if (!batteryState) return '#4CAF50';
+    
+    const level = batteryState.batteryLevel;
+    if (level >= 50) return '#4CAF50'; // Green
+    if (level >= 20) return '#FF9800'; // Orange
+    return '#F44336'; // Red
+  };
 
   const goReminders = () => router.push('/reminders/list');
   const goSettings = () => router.push('/settings');
@@ -38,7 +107,7 @@ export default function HomeScreen() {
       {/* CONTENT */}
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(80, insets.bottom + 16) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Quick Actions Card */}
@@ -100,10 +169,25 @@ export default function HomeScreen() {
         <View style={styles.metricsRow}>
           <Card mode="elevated" style={styles.metricCardWide}>
             <Card.Content style={[styles.metricContent, { gap: 12 }]}>
-              <Avatar.Icon size={40} icon="battery-50" style={styles.metricAvatar} />
+              <Avatar.Icon 
+                size={40} 
+                icon={getBatteryIcon()} 
+                style={[styles.metricAvatar, { backgroundColor: `${getBatteryColor()}1A` }]} 
+              />
               <View style={{ flex: 1 }}>
-                <Text variant="titleMedium">Battery 52%</Text>
-                <Text variant="bodySmall" style={styles.muted}>Low-battery rules enabled</Text>
+                <Text variant="titleMedium">
+                  Battery {batteryState ? `${batteryState.batteryLevel}%` : 'Loading...'}
+                </Text>
+                <Text variant="bodySmall" style={styles.muted}>
+                  {batteryState ? 
+                    `${batteryState.batteryState === 'charging' ? 'Charging' : 
+                      batteryState.batteryState === 'full' ? 'Full' : 
+                      batteryState.batteryState === 'unplugged' ? 'Unplugged' : 'Unknown'}${
+                      batteryState.lowPowerMode ? ' • Low Power Mode' : ''
+                    }` : 
+                    'Low-battery rules enabled'
+                  }
+                </Text>
               </View>
               <Button compact onPress={goSettings}>Optimize</Button>
             </Card.Content>
@@ -127,7 +211,7 @@ export default function HomeScreen() {
       {/* Floating Action Button */}
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: BRAND.purple }]}
+        style={[styles.fab, { backgroundColor: BRAND.purple, bottom: insets.bottom ? insets.bottom + 16 : 80 }]}
         onPress={goReminders}
         color="white"
       />

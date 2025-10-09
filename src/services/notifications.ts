@@ -2,7 +2,7 @@
  * LOCAL NOTIFICATIONS SERVICE
  * 
  * This service handles LOCAL notifications only (no remote push notifications).
- * Works with Expo Go and doesn't require development builds.
+ * Works with Expo Go and development builds.
  * 
  * Features:
  * - Schedule local notifications based on time, location, battery
@@ -13,6 +13,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { NotificationPermissionStatus, NotificationAction, NotificationCategory } from '../types/reminder';
 import ReminderRepository from './repo';
 
@@ -43,25 +44,25 @@ class NotificationService {
 
   public async initialize(): Promise<void> {
     try {
-      // Suppress remote notification warnings - we only use local notifications
-      this.suppressRemoteNotificationWarnings();
+      // Check if we're in Expo Go
+      const isExpoGo = Constants.appOwnership === 'expo';
+      if (isExpoGo) {
+        console.log('ℹ️ Running in Expo Go - using LOCAL notifications only');
+        console.log('ℹ️ Remote push notifications require a development build');
+      }
       
       // Request permissions for local notifications only
       await this.requestPermissions();
       await this.setupNotificationCategories();
       await this.setupNotificationListeners();
-      console.log('Local notification service initialized (LOCAL notifications only, works in Expo Go)');
+      console.log('✅ Local notification service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize notification service:', error);
+      console.error('❌ Failed to initialize notification service:', error);
+      // Don't throw - allow app to continue without notifications
     }
   }
 
-  private suppressRemoteNotificationWarnings(): void {
-    // This method acknowledges we're aware of the remote notification limitation
-    // and intentionally only use local notifications
-    console.log(' RemindMe+ uses LOCAL notifications only - no remote push notifications needed');
-    console.log(' This works perfectly in Expo Go without development builds');
-  }
+
 
   public async requestPermissions(): Promise<NotificationPermissionStatus> {
     try {

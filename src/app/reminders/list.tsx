@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Banner
 } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { ReminderItem } from '../../components/ReminderItem';
 import { Reminder } from '../../types/reminder';
@@ -177,6 +177,8 @@ export default function RemindersListScreen() {
     </View>
   );
 
+  const insets = useSafeAreaInsets();
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -189,7 +191,7 @@ export default function RemindersListScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+  <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {showPermissionBanner && (
         <Banner
           visible={showPermissionBanner}
@@ -222,7 +224,7 @@ export default function RemindersListScreen() {
         data={filteredReminders}
         renderItem={renderReminder}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[styles.listContainer, { paddingBottom: Math.max(80, insets.bottom + 16) }]}
         ListEmptyComponent={renderEmpty}
         refreshing={refreshing}
         onRefresh={handleRefresh}
@@ -231,7 +233,7 @@ export default function RemindersListScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={[styles.fab, { backgroundColor: theme.colors.primary, bottom: insets.bottom ? insets.bottom + 16 : 80 }]}
         onPress={handleCreateReminder}
       />
     </SafeAreaView>

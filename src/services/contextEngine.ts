@@ -2,7 +2,7 @@ import * as Location from 'expo-location';
 import ReminderRepository from './repo';
 import NotificationService from './notifications';
 import LocationService from './location';
-import BatteryService from './battery';
+// BatteryService imported lazily to avoid circular dependency
 import { Reminder, BatteryState } from '../types/reminder';
 
 export class ContextEngine {
@@ -30,6 +30,11 @@ export class ContextEngine {
         await this.evaluateReminder(reminder);
       }
     } catch (error) {
+      // If database is not initialized, just log and continue
+      if (error instanceof Error && error.message.includes('Database not initialized')) {
+        console.log('All conditions check skipped - database not yet initialized');
+        return;
+      }
       console.error('Error checking all conditions:', error);
     }
   }
@@ -43,6 +48,11 @@ export class ContextEngine {
         await this.evaluateReminderWithLocation(reminder, location);
       }
     } catch (error) {
+      // If database is not initialized, just log and continue
+      if (error instanceof Error && error.message.includes('Database not initialized')) {
+        console.log('Location conditions check skipped - database not yet initialized');
+        return;
+      }
       console.error('Error checking location conditions:', error);
     }
   }
@@ -56,6 +66,11 @@ export class ContextEngine {
         await this.evaluateReminderWithBattery(reminder, batteryState);
       }
     } catch (error) {
+      // If database is not initialized, just log and continue
+      if (error instanceof Error && error.message.includes('Database not initialized')) {
+        console.log('Battery conditions check skipped - database not yet initialized');
+        return;
+      }
       console.error('Error checking battery conditions:', error);
     }
   }
@@ -69,6 +84,11 @@ export class ContextEngine {
         await this.evaluateReminderWithTime(reminder);
       }
     } catch (error) {
+      // If database is not initialized, just log and continue
+      if (error instanceof Error && error.message.includes('Database not initialized')) {
+        console.log('Time conditions check skipped - database not yet initialized');
+        return;
+      }
       console.error('Error checking time conditions:', error);
     }
   }
@@ -85,6 +105,7 @@ export class ContextEngine {
       // Get current battery state if needed
       let currentBatteryState: BatteryState | null = null;
       if (reminder.rule.battery) {
+        const BatteryService = (await import('./battery')).default;
         const batteryService = BatteryService.getInstance();
         currentBatteryState = await batteryService.getCurrentBatteryState();
       }
@@ -112,6 +133,7 @@ export class ContextEngine {
       // Get current battery state if needed
       let currentBatteryState: BatteryState | null = null;
       if (reminder.rule.battery) {
+        const BatteryService = (await import('./battery')).default;
         const batteryService = BatteryService.getInstance();
         currentBatteryState = await batteryService.getCurrentBatteryState();
       }
@@ -168,6 +190,7 @@ export class ContextEngine {
       // Get current battery state if needed
       let currentBatteryState: BatteryState | null = null;
       if (reminder.rule.battery) {
+        const BatteryService = (await import('./battery')).default;
         const batteryService = BatteryService.getInstance();
         currentBatteryState = await batteryService.getCurrentBatteryState();
       }

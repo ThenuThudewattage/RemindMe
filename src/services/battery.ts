@@ -1,6 +1,6 @@
 import * as Battery from 'expo-battery';
 import { BatteryState } from '../types/reminder';
-import { ContextEngine } from './contextEngine';
+// Avoid circular dependency by importing ContextEngine lazily
 
 class BatteryService {
   private static instance: BatteryService;
@@ -131,10 +131,16 @@ class BatteryService {
 
   private async checkBatteryConditions(batteryState: BatteryState): Promise<void> {
     try {
-      // Use the context engine to check battery conditions
+      // Lazy import to avoid circular dependency
+      const { ContextEngine } = await import('./contextEngine');
       const contextEngine = ContextEngine.getInstance();
       await contextEngine.checkBatteryConditions(batteryState);
     } catch (error) {
+      // If database is not initialized, just log and continue
+      if (error instanceof Error && error.message.includes('Database not initialized')) {
+        console.log('Battery conditions check skipped - database not yet initialized');
+        return;
+      }
       console.error('Error checking battery conditions:', error);
     }
   }
