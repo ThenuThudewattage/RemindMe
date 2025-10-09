@@ -23,11 +23,22 @@ export interface ReminderRule {
   };
 }
 
+export interface LocationTrigger {
+  id: string;
+  mode: 'enter' | 'exit' | 'both';
+  latitude: number;
+  longitude: number;
+  radius: number;
+  label?: string;
+  enabled: boolean;
+}
+
 export interface Reminder {
   id: number;
   title: string;
   notes?: string;
   rule: ReminderRule;
+  locationTrigger?: LocationTrigger;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -45,6 +56,7 @@ export interface CreateReminderInput {
   title: string;
   notes?: string;
   rule: ReminderRule;
+  locationTrigger?: LocationTrigger;
   enabled?: boolean;
 }
 
@@ -99,4 +111,17 @@ export interface NotificationCategory {
     showOnLockScreen?: boolean;
     playSound?: boolean;
   };
+}
+
+export interface GeofenceStatus {
+  reminderId: string;
+  active: boolean;
+  lastEvent?: 'enter' | 'exit';
+  updatedAt: number;
+}
+
+export interface GeofenceEvent {
+  reminderId: string;
+  type: 'enter' | 'exit';
+  timestamp: number;
 }

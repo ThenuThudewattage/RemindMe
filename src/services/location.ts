@@ -1,7 +1,6 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { LocationPermissionStatus, GeofenceRegion } from '../types/reminder';
-import { ContextEngine } from './contextEngine';
 
 const LOCATION_TASK_NAME = 'location-background-task';
 const GEOFENCE_TASK_NAME = 'geofence-task';
@@ -210,9 +209,10 @@ class LocationService {
 
   private async handleLocationUpdate(location: Location.LocationObject): Promise<void> {
     try {
-      // Use the context engine to check location conditions
-      const contextEngine = ContextEngine.getInstance();
-      await contextEngine.checkLocationConditions(location);
+      // Use callback if available to avoid circular dependency
+      if (this.onLocationChangeCallback) {
+        this.onLocationChangeCallback(location);
+      }
     } catch (error) {
       console.error('Error handling location update:', error);
     }
