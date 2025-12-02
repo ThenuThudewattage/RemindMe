@@ -4,6 +4,7 @@ import LocationService from './location';
 import BatteryService from './battery';
 import { ContextEngine } from './contextEngine';
 import NotificationService from './notifications';
+import ReminderRepository from './repo';
 
 const BACKGROUND_FETCH_TASK = 'background-fetch-task';
 
@@ -26,6 +27,10 @@ class BackgroundService {
       // This warning is expected and the app will continue to work normally
       await this.defineBackgroundTasks();
       await this.registerBackgroundFetch();
+      
+      // Initialize geofencing
+      await this.initializeGeofencing();
+      
       console.log('Background service initialized');
     } catch (error) {
       console.warn('Background service initialization failed (this is expected in Expo Go):', error);
@@ -222,6 +227,17 @@ class BackgroundService {
         location: false,
         notifications: false,
       };
+    }
+  }
+
+  private async initializeGeofencing(): Promise<void> {
+    try {
+      const reminderRepo = ReminderRepository.getInstance();
+      await reminderRepo.restoreGeofences();
+      console.log('Geofencing initialized and restored');
+    } catch (error) {
+      console.warn('Failed to initialize geofencing:', error);
+      // Don't throw - app should continue working without geofencing
     }
   }
 }

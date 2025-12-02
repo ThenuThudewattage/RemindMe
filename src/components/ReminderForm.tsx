@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { 
   TextInput, 
   Button, 
@@ -14,7 +16,17 @@ import {
 } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
-import { CreateReminderInput, UpdateReminderInput, ReminderRule } from '../types/reminder';
+import { CreateReminderInput, UpdateReminderInput, ReminderRule, LocationTrigger } from '../types/reminder';
+import { locationSelectionService } from '../services/locationSelection';
+
+// Simple UUID generator for React Native
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 interface ReminderFormProps {
   initialValues?: UpdateReminderInput;
@@ -34,6 +46,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   isEditing = false,
 }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [title, setTitle] = useState(initialValues?.title || '');
   const [notes, setNotes] = useState(initialValues?.notes || '');
   const [enabled, setEnabled] = useState(initialValues?.enabled ?? true);
@@ -68,10 +81,19 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   const [tempEndMonth, setTempEndMonth] = useState(endDate.getMonth());
   const [tempEndYear, setTempEndYear] = useState(endDate.getFullYear());
   
-  // Location condition state
-  const [hasLocationCondition, setHasLocationCondition] = useState(!!(initialValues?.rule?.location));
-  const [locationRadius, setLocationRadius] = useState(initialValues?.rule?.location?.radius || 100);
-  const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
+  // Location condition state - REMOVED (replaced by location trigger/geofencing)
+  
+  // Location trigger state (geofencing)
+  const [hasLocationTrigger, setHasLocationTrigger] = useState(!!(initialValues?.locationTrigger?.enabled));
+  const [locationTrigger, setLocationTrigger] = useState<Omit<LocationTrigger, 'id' | 'enabled'> | null>(
+    initialValues?.locationTrigger ? {
+      latitude: initialValues.locationTrigger.latitude,
+      longitude: initialValues.locationTrigger.longitude,
+      radius: initialValues.locationTrigger.radius,
+      mode: initialValues.locationTrigger.mode,
+      label: initialValues.locationTrigger.label,
+    } : null
+  );
   
   // Battery condition state
   const [hasBatteryCondition, setHasBatteryCondition] = useState(!!(initialValues?.rule?.battery));
@@ -84,7 +106,6 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   const [cooldownMins, setCooldownMins] = useState(initialValues?.rule?.options?.cooldownMins || 10);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
 
   useEffect(() => {
     // Initialize battery mode based on existing values
@@ -119,7 +140,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         setHasTimeCondition(true);
         setTitle('Remind me later');
       } else if (preset === 'location') {
-        setHasLocationCondition(true);
+        setHasLocationTrigger(true);
         setTitle('Wake me there');
       } else if (preset === 'battery') {
         setHasBatteryCondition(true);
@@ -130,28 +151,38 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     }
   }, [initialValues, preset, startDate, endDate]);
 
-  const getCurrentLocation = async () => {
-    try {
-      setLocationLoading(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required to set location-based reminders.');
-        return;
-      }
+  // Subscribe to location selections from MapPicker
+  useEffect(() => {
+    const unsubscribe = locationSelectionService.subscribe((location) => {
+      setLocationTrigger(location);
+      setHasLocationTrigger(true);
+    });
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High
-      });
-      
-      setCurrentLocation(location);
-      Alert.alert('Location Set', 'Current location has been set for this reminder.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to get current location. Please try again.');
-      console.error('Error getting location:', error);
-    } finally {
-      setLocationLoading(false);
+    return unsubscribe;
+  }, []);
+
+  // getCurrentLocation function removed - replaced by MapPicker component
+
+  const openMapPicker = () => {
+    const params: any = {
+      isEditing: isEditing ? 'true' : 'false',
+      preset: preset || undefined, // Pass the preset context
+    };
+    
+    if (locationTrigger) {
+      params.latitude = locationTrigger.latitude.toString();
+      params.longitude = locationTrigger.longitude.toString();
+      params.radius = locationTrigger.radius.toString();
+      params.mode = locationTrigger.mode;
+      params.label = locationTrigger.label || '';
     }
+    
+    router.push({ pathname: '/map-picker', params });
+  };
+
+  const removeLocationTrigger = () => {
+    setLocationTrigger(null);
+    Alert.alert('Location Removed', 'Location trigger has been removed from this reminder.');
   };
 
   const buildRule = (): ReminderRule => {
@@ -165,14 +196,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       };
     }
 
-    // Location condition
-    if (hasLocationCondition && currentLocation) {
-      newRule.location = {
-        lat: currentLocation.coords.latitude,
-        lon: currentLocation.coords.longitude,
-        radius: locationRadius,
-      };
-    }
+    // Location condition - REMOVED (replaced by location trigger/geofencing)
 
     // Battery condition
     if (hasBatteryCondition) {
@@ -208,7 +232,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     }
 
     // Preset-specific validation
-    if (preset === 'location' && !currentLocation) {
+    if (preset === 'location' && !locationTrigger) {
       Alert.alert('Validation Error', 'Please set a location for the location-based reminder.');
       return;
     }
@@ -224,8 +248,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     }
 
     // General validation for optional conditions
-    if (hasLocationCondition && !currentLocation) {
-      Alert.alert('Validation Error', 'Please set a location for the location-based reminder.');
+
+    if (hasLocationTrigger && !locationTrigger) {
+      Alert.alert('Validation Error', 'Please set a location for the geofencing trigger.');
       return;
     }
 
@@ -241,11 +266,18 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
 
     try {
       setIsSubmitting(true);
+      const reminderLocationTrigger = hasLocationTrigger && locationTrigger ? {
+        id: generateUUID(), // Generate unique ID for the trigger
+        ...locationTrigger,
+        enabled: true,
+      } : undefined;
+
       const reminderData = {
         ...(isEditing && initialValues?.id ? { id: initialValues.id } : {}),
         title: title.trim(),
         notes: notes.trim() || undefined,
         rule: buildRule(),
+        locationTrigger: reminderLocationTrigger,
         enabled,
       };
 
@@ -403,9 +435,23 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Card style={styles.card} mode="outlined">
-        <Card.Content>
+    <View style={styles.container}>
+      {/* Purple Top Bar */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+        <IconButton 
+          icon="arrow-left" 
+          iconColor="#a644f0ff"
+          onPress={onCancel}
+        />
+        <Text variant="titleLarge" style={styles.topBarTitle}>
+          {isEditing ? 'Edit Reminder' : 'Create Reminder'}
+        </Text>
+        <View style={styles.topBarSpacer} />
+      </View>
+      
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
           <Text variant="titleMedium" style={styles.sectionTitle}>Basic Information</Text>
           
           <TextInput
@@ -414,6 +460,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             onChangeText={setTitle}
             style={styles.input}
             mode="outlined"
+            contentStyle={styles.inputContent}
+            outlineStyle={styles.inputOutline}
+            activeOutlineColor="#6B46C1"
           />
           
           <TextInput
@@ -424,6 +473,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             mode="outlined"
             multiline
             numberOfLines={3}
+            contentStyle={styles.inputContent}
+            outlineStyle={styles.inputOutline}
+            activeOutlineColor="#6B46C1"
           />
           
           <View style={styles.switchContainer}>
@@ -892,53 +944,73 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         </Card>
       )}
 
-      {/* Location Condition */}
+      {/* Old Location Condition section removed - replaced by Geofencing Trigger below */}
+
+      {/* Geofencing Trigger */}
       {shouldShowSection('location') && (
         <Card style={styles.card} mode="outlined">
           <Card.Content>
             <View style={styles.conditionHeader}>
-              <Text variant="titleMedium">Location Condition</Text>
+              <Text variant="titleMedium">Location Trigger (Geofencing)</Text>
               {preset !== 'location' && (
-                <Switch value={hasLocationCondition} onValueChange={setHasLocationCondition} />
+                <Switch value={hasLocationTrigger} onValueChange={setHasLocationTrigger} />
               )}
               {preset === 'location' && (
                 <Text variant="bodySmall" style={{ color: theme.colors.primary }}>Required</Text>
               )}
             </View>
           
-          {hasLocationCondition && (
+          {hasLocationTrigger && (
             <View style={styles.conditionContent}>
               <Text variant="bodyMedium" style={styles.conditionDescription}>
-                Reminder will trigger when you're within the specified radius of a location
+                Get notified when entering or leaving a specific location
               </Text>
               
-              <Button
-                mode="contained"
-                onPress={getCurrentLocation}
-                loading={locationLoading}
-                style={styles.locationButton}
-                icon="crosshairs-gps"
-              >
-                {currentLocation ? 'Update Location' : 'Set Current Location'}
-              </Button>
-              
-              {currentLocation && (
-                <Text variant="bodySmall" style={styles.locationInfo}>
-                  Location: {currentLocation.coords.latitude.toFixed(6)}, {currentLocation.coords.longitude.toFixed(6)}
-                </Text>
+              {locationTrigger ? (
+                <View style={styles.locationTriggerInfo}>
+                  <Card mode="contained" style={styles.locationCard}>
+                    <Card.Content style={styles.locationCardContent}>
+                      <Text variant="titleSmall" numberOfLines={1}>
+                        {locationTrigger.label || 'Selected Location'}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.locationDetails}>
+                        {locationTrigger.latitude.toFixed(4)}, {locationTrigger.longitude.toFixed(4)}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.locationDetails}>
+                        Radius: {locationTrigger.radius}m • Mode: {locationTrigger.mode}
+                      </Text>
+                    </Card.Content>
+                  </Card>
+                  
+                  <View style={styles.locationActions}>
+                    <Button
+                      mode="outlined"
+                      onPress={openMapPicker}
+                      style={styles.locationActionButton}
+                      icon="map-marker-outline"
+                    >
+                      Edit Location
+                    </Button>
+                    <Button
+                      mode="text"
+                      onPress={removeLocationTrigger}
+                      style={styles.locationActionButton}
+                      textColor={theme.colors.error}
+                    >
+                      Remove
+                    </Button>
+                  </View>
+                </View>
+              ) : (
+                <Button
+                  mode="contained"
+                  onPress={openMapPicker}
+                  style={styles.locationButton}
+                  icon="map-marker-plus"
+                >
+                  Choose Location on Map
+                </Button>
               )}
-              
-              <View style={styles.sliderContainer}>
-                <Text variant="labelMedium">Radius: {locationRadius}m</Text>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={10}
-                  maximumValue={1000}
-                  value={locationRadius}
-                  onValueChange={setLocationRadius}
-                  step={10}
-                />
-              </View>
             </View>
           )}
           </Card.Content>
@@ -1050,22 +1122,18 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
 
       <View style={styles.actions}>
         <Button
-          mode="outlined"
-          onPress={onCancel}
-          style={[styles.button, styles.cancelButton]}
-        >
-          Cancel
-        </Button>
-        <Button
           mode="contained"
           onPress={handleSubmit}
           loading={isSubmitting}
-          style={[styles.button, styles.submitButton]}
+          style={[styles.button, styles.primaryButton]}
+          contentStyle={styles.primaryButtonContent}
+          labelStyle={styles.primaryButtonLabel}
         >
           {isEditing ? 'Update' : 'Create'} Reminder
         </Button>
       </View>
     </ScrollView>
+    </View>
   );
 };
 
@@ -1074,31 +1142,84 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6B46C1', // Purple color
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  topBarTitle: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 48, // Compensate for left icon
+  },
+  topBarSpacer: {
+    width: 48,
+  },
+  scrollContent: {
+    flex: 1,
+  },
   card: {
     margin: 16,
     marginBottom: 8,
+    borderRadius: 16, // More rounded
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sectionTitle: {
     marginBottom: 16,
     fontWeight: '600',
+    color: '#6B46C1',
   },
   input: {
     marginBottom: 16,
+    borderRadius: 12, // Rounded inputs
+  },
+  inputContent: {
+    borderRadius: 12,
+  },
+  inputOutline: {
+    borderRadius: 12,
+    borderWidth: 2,
   },
   switchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 8,
+    backgroundColor: '#F8F9FF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   conditionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
+    backgroundColor: '#F8F9FF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginHorizontal: -16,
   },
   conditionContent: {
     marginTop: 16,
+    backgroundColor: '#FAFBFF',
+    padding: 16,
+    borderRadius: 12,
+    marginHorizontal: -16,
   },
   conditionDescription: {
     marginBottom: 16,
@@ -1215,9 +1336,11 @@ const styles = StyleSheet.create({
   },
   timeActionButton: {
     flex: 1,
+    borderRadius: 20,
   },
   locationButton: {
     marginBottom: 12,
+    borderRadius: 20,
   },
   locationInfo: {
     color: '#666',
@@ -1236,17 +1359,60 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   actions: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    padding: 20,
+    paddingBottom: 30,
+    backgroundColor: '#FFFFFF',
   },
   button: {
-    flex: 1,
+    borderRadius: 24, // Very rounded buttons
+    paddingVertical: 4,
   },
   cancelButton: {
     marginRight: 8,
+    borderRadius: 24,
   },
   submitButton: {
     marginLeft: 8,
+    borderRadius: 24,
+    backgroundColor: '#6B46C1',
+  },
+  primaryButton: {
+    borderRadius: 24,
+    backgroundColor: '#6B46C1',
+    shadowColor: '#6B46C1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  primaryButtonContent: {
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+  },
+  primaryButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  locationTriggerInfo: {
+    marginTop: 8,
+  },
+  locationCard: {
+    marginBottom: 12,
+  },
+  locationCardContent: {
+    paddingVertical: 12,
+  },
+  locationDetails: {
+    marginTop: 4,
+    opacity: 0.7,
+  },
+  locationActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  locationActionButton: {
+    flex: 1,
+    borderRadius: 20,
   },
 });

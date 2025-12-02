@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
-import { useTheme } from 'react-native-paper';
+import { useTheme, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View } from 'react-native';
+import DatabaseService from '../services/db';
 
 function InnerTabs() {
   const theme = useTheme();
@@ -66,6 +68,37 @@ function InnerTabs() {
 }
 
 export default function RootTabsLayout() {
+  const [isDbReady, setIsDbReady] = useState(false);
+  const theme = useTheme();
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        console.log('Starting database initialization...');
+        const dbService = DatabaseService.getInstance();
+        await dbService.initialize();
+        console.log('Database initialized successfully');
+        setIsDbReady(true);
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+        // Still allow the app to continue
+        setIsDbReady(true);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  if (!isDbReady) {
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <InnerTabs />

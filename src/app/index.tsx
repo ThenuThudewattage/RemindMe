@@ -31,8 +31,15 @@ export default function HomeScreen() {
           setBatteryState(newState);
         });
         
-        // Start monitoring
-        await batteryService.startBatteryMonitoring();
+        // Add a small delay to ensure repository is fully initialized
+        setTimeout(async () => {
+          try {
+            // Start monitoring after repository is ready
+            await batteryService.startBatteryMonitoring();
+          } catch (error) {
+            console.error('Failed to start battery monitoring:', error);
+          }
+        }, 1000);
       } catch (error) {
         console.error('Failed to initialize battery service:', error);
       }

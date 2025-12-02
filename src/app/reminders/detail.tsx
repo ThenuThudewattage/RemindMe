@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { format } from 'date-fns';
 import { Reminder, ReminderEvent } from '../../types/reminder';
 import ReminderRepository from '../../services/repo';
+import GeofencingService from '../../features/geofencing/service';
 
 export default function ReminderDetailScreen() {
   const theme = useTheme();
@@ -61,6 +62,34 @@ export default function ReminderDetailScreen() {
           edit: 'true'
         }
       });
+    }
+  };
+
+  const handleSimulateEnter = async () => {
+    if (!reminder?.locationTrigger) return;
+    
+    try {
+      const geofencingService = GeofencingService.getInstance();
+      await geofencingService.simulateGeofenceEvent(reminder.id.toString(), 'enter');
+      
+      // Reload events to show the new event
+      setTimeout(() => loadReminderDetails(), 1000);
+    } catch (error) {
+      console.error('Failed to simulate geofence enter event:', error);
+    }
+  };
+
+  const handleSimulateExit = async () => {
+    if (!reminder?.locationTrigger) return;
+    
+    try {
+      const geofencingService = GeofencingService.getInstance();
+      await geofencingService.simulateGeofenceEvent(reminder.id.toString(), 'exit');
+      
+      // Reload events to show the new event
+      setTimeout(() => loadReminderDetails(), 1000);
+    } catch (error) {
+      console.error('Failed to simulate geofence exit event:', error);
     }
   };
 
@@ -245,6 +274,40 @@ export default function ReminderDetailScreen() {
           </Card.Content>
         </Card>
 
+        {/* Development Testing Section */}
+        {reminder.locationTrigger?.enabled && __DEV__ && (
+          <Card style={styles.card} mode="outlined">
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Testing (Development Only)
+              </Text>
+              
+              <Text variant="bodySmall" style={styles.testingNote}>
+                Simulate geofence events to test notifications
+              </Text>
+              
+              <View style={styles.testingActions}>
+                <Button
+                  mode="outlined"
+                  onPress={handleSimulateEnter}
+                  style={styles.testButton}
+                  icon="location-enter"
+                >
+                  Simulate Enter
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={handleSimulateExit}
+                  style={styles.testButton}
+                  icon="location-exit"
+                >
+                  Simulate Exit
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Actions */}
         <View style={styles.actions}>
           <Button
@@ -332,5 +395,18 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingVertical: 8,
+  },
+  testingNote: {
+    marginBottom: 16,
+    opacity: 0.7,
+    fontStyle: 'italic',
+  },
+  testingActions: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  testButton: {
+    flex: 1,
   },
 });

@@ -1,7 +1,6 @@
 import * as Location from 'expo-location';
 import ReminderRepository from './repo';
 import NotificationService from './notifications';
-import LocationService from './location';
 // BatteryService imported lazily to avoid circular dependency
 import { Reminder, BatteryState } from '../types/reminder';
 
@@ -13,6 +12,25 @@ export class ContextEngine {
   private constructor() {
     this.repo = ReminderRepository.getInstance();
     this.notificationService = NotificationService.getInstance();
+    
+    // Set up location callback to break circular dependency - use dynamic import
+    this.setupLocationCallback();
+  }
+
+  private async setupLocationCallback(): Promise<void> {
+    try {
+      const LocationService = (await import('./location')).default;
+      const locationService = LocationService.getInstance();
+      locationService.setLocationChangeCallback(async (location: Location.LocationObject) => {
+        try {
+          await this.checkLocationConditions(location);
+        } catch (error) {
+          console.error('Error in location callback:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Error setting up location callback:', error);
+    }
   }
 
   public static getInstance(): ContextEngine {
@@ -98,6 +116,7 @@ export class ContextEngine {
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
+        const LocationService = (await import('./location')).default;
         const locationService = LocationService.getInstance();
         currentLocation = await locationService.getCurrentLocation();
       }
@@ -160,6 +179,7 @@ export class ContextEngine {
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
+        const LocationService = (await import('./location')).default;
         const locationService = LocationService.getInstance();
         currentLocation = await locationService.getCurrentLocation();
       }
@@ -183,6 +203,7 @@ export class ContextEngine {
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
+        const LocationService = (await import('./location')).default;
         const locationService = LocationService.getInstance();
         currentLocation = await locationService.getCurrentLocation();
       }

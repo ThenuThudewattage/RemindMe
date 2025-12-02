@@ -14,8 +14,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { NotificationPermissionStatus, NotificationAction, NotificationCategory } from '../types/reminder';
-import ReminderRepository from './repo';
+import { NotificationPermissionStatus, NotificationAction, NotificationCategory, Reminder } from '../types/reminder';
 
 // Configure LOCAL notification behavior (no remote push notifications)
 Notifications.setNotificationHandler({
@@ -40,6 +39,10 @@ class NotificationService {
       NotificationService.instance = new NotificationService();
     }
     return NotificationService.instance;
+  }
+
+  public setNotificationActionHandler(handler: (reminderId: number, action: string, title: string) => Promise<void>): void {
+    this.onNotificationAction = handler;
   }
 
   public async initialize(): Promise<void> {
@@ -193,37 +196,24 @@ class NotificationService {
 
   private async handleNotificationResponse(response: Notifications.NotificationResponse): Promise<void> {
     try {
-      const { notification, actionIdentifier } = response;
-      const reminderId = notification.request.content.data?.reminderId as number;
+      const { actionIdentifier, notification } = response;
+      const reminderId = Number(notification.request.content.data?.reminderId);
 
       if (!reminderId) {
-        console.warn('No reminder ID in notification data');
+        console.error('No reminder ID found in notification data');
         return;
       }
 
-      // Get repository instance
-      const repo = ReminderRepository.getInstance();
-
-      switch (actionIdentifier) {
-        case 'SNOOZE':
-          await repo.snoozeReminder(reminderId, 10); // Snooze for 10 minutes
-          await this.scheduleSnoozeNotification(reminderId, notification.request.content.title || 'Reminder');
-          break;
-
-        case 'DONE':
-          await repo.markReminderCompleted(reminderId);
-          break;
-
-        case 'OPEN':
-        default:
-          // Navigate to reminder detail - this would be handled by the app's navigation
-          console.log('Opening reminder:', reminderId);
-          break;
+      // Use callback approach to avoid circular dependency
+      if (this.onNotificationAction) {
+        await this.onNotificationAction(reminderId, actionIdentifier, notification.request.content.title || 'Reminder');
       }
     } catch (error) {
       console.error('Error handling notification response:', error);
     }
   }
+
+  private onNotificationAction?: (reminderId: number, action: string, title: string) => Promise<void>;
 
   /**
    * Schedule a LOCAL notification (works in Expo Go)
@@ -283,7 +273,7 @@ class NotificationService {
     }
   }
 
-  private async scheduleSnoozeNotification(reminderId: number, title: string): Promise<void> {
+  public async scheduleSnoozeNotification(reminderId: number, title: string): Promise<void> {
     try {
       const snoozeTime = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
       await this.showReminderNotification(

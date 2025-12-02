@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackgroundService from '../services/background';
 import ReminderRepository from '../services/repo';
+import DatabaseService from '../services/db';
 import { Reminder, ReminderEvent } from '../types/reminder';
 
 export default function SettingsScreen() {
@@ -165,6 +166,35 @@ export default function SettingsScreen() {
 
   const handleOpenAppSettings = () => {
     Linking.openSettings();
+  };
+
+  const resetDatabase = async () => {
+    Alert.alert(
+      'Reset Database',
+      'This will delete all reminders and start fresh. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const dbService = DatabaseService.getInstance();
+              await dbService.resetDatabase();
+              await dbService.initialize();
+              await loadSettings(); // Refresh data
+              Alert.alert('Success', 'Database has been reset successfully.');
+            } catch (error) {
+              console.error('Failed to reset database:', error);
+              Alert.alert('Error', 'Failed to reset database. Please try again.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getPermissionStatus = (granted: boolean) => (
@@ -388,6 +418,28 @@ export default function SettingsScreen() {
                 </DataTable>
               </View>
             )}
+          </Card.Content>
+        </Card>
+
+        {/* Debug Actions Card */}
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Debug Actions
+            </Text>
+            
+            <Text variant="bodyMedium" style={styles.aboutText}>
+              Use these actions for debugging database issues.
+            </Text>
+            
+            <Button
+              mode="contained-tonal"
+              onPress={resetDatabase}
+              style={{ marginTop: 12 }}
+              icon="database-refresh"
+            >
+              Reset Database
+            </Button>
           </Card.Content>
         </Card>
 
