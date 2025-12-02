@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ImageBackground, ScrollView } from 'react-native';
 import { Text, Card, Button, IconButton, useTheme, Chip, Avatar, FAB, TextInput } from 'react-native-paper';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BRAND, space } from '../theme';
 import NotificationService from '../services/notifications'; // OPTIONAL: only if you want quick test action
@@ -92,7 +92,7 @@ export default function HomeScreen() {
   const goHistory = () => router.push('/history');
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       {/* HERO — rich purple header with subtle noise/texture (uses a tiny base64 gradient or replace with your asset) */}
       <ImageBackground
         source={{
@@ -105,7 +105,7 @@ export default function HomeScreen() {
       >
         <View style={styles.heroTopRow}>
           <Text variant="headlineLarge" style={styles.brandTitle}>RemindMe+</Text>
-          <IconButton icon="bell-outline" iconColor="white" onPress={goReminders} />
+          <IconButton icon="cog-outline" iconColor="white" onPress={goSettings} />
         </View>
 
     
@@ -222,7 +222,7 @@ export default function HomeScreen() {
         onPress={goReminders}
         color="white"
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -247,8 +247,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   hero: {
     paddingHorizontal: space(2),
-    paddingTop: space(3),
-    paddingBottom: space(3),
+    paddingTop: space(2),
+    paddingBottom: space(2),
     overflow: 'hidden',
   },
   heroTopRow: {

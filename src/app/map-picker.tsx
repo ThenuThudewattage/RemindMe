@@ -4,6 +4,9 @@ import MapPicker from '../features/geofencing/MapPicker';
 import { LocationTrigger } from '../types/reminder';
 import { locationSelectionService } from '../services/locationSelection';
 
+// Hide this screen from the bottom tabs
+export const href = null;
+
 export default function MapPickerScreen() {
   const params = useLocalSearchParams();
   
