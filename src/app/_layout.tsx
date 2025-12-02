@@ -63,6 +63,14 @@ function InnerTabs() {
             <MaterialCommunityIcons name="cog-outline" size={size} color={color} />,
         }}
       />
+
+      {/* Hide map-picker from tabs - it's a utility screen accessed from other screens */}
+      <Tabs.Screen
+        name="map-picker"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
