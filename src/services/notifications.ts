@@ -147,29 +147,45 @@ class NotificationService {
         {
           identifier: 'SNOOZE',
           buttonTitle: 'Snooze 10m',
-          textInput: undefined,
+          options: {
+            isDestructive: false,
+            isAuthenticationRequired: false,
+          },
         },
         {
           identifier: 'DONE', 
           buttonTitle: 'Mark Done',
-          textInput: undefined,
+          options: {
+            isDestructive: false,
+            isAuthenticationRequired: false,
+          },
         },
         {
-          identifier: 'OPEN',
-          buttonTitle: 'Open',
-          textInput: undefined,
+          identifier: 'DISMISS',
+          buttonTitle: 'Dismiss',
+          options: {
+            isDestructive: true,
+            isAuthenticationRequired: false,
+          },
         },
       ];
 
-      // Set the category (platform-specific implementation)
-      if (Platform.OS === 'ios') {
-        await Notifications.setNotificationCategoryAsync(
-          'REMINDER',
-          actions
-        );
-      }
+      // Set the category for both iOS and Android
+      await Notifications.setNotificationCategoryAsync(
+        'REMINDER',
+        actions,
+        {
+          // iOS specific options
+          ...(Platform.OS === 'ios' && {
+            previewPlaceholder: 'Reminder',
+            intentIdentifiers: [],
+            categorySummaryFormat: '%u reminder(s)',
+          }),
+          // Android will use the actions as notification buttons
+        }
+      );
 
-      console.log('Notification categories set up');
+      console.log(`✅ Notification categories set up for ${Platform.OS} with Snooze, Done, and Dismiss actions`);
     } catch (error) {
       console.error('Error setting up notification categories:', error);
     }
@@ -273,17 +289,35 @@ class NotificationService {
     }
   }
 
-  public async scheduleSnoozeNotification(reminderId: number, title: string): Promise<void> {
+  public async scheduleSnoozeNotification(reminderId: number, title: string, snoozeMinutes: number = 10): Promise<string> {
     try {
-      const snoozeTime = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
-      await this.showReminderNotification(
-        reminderId,
-        `Snoozed: ${title}`,
-        'Your reminder is ready again',
-        snoozeTime
-      );
+      const permissions = await this.checkPermissions();
+      if (!permissions.granted) {
+        throw new Error('Notification permissions not granted');
+      }
+
+      const snoozeSeconds = snoozeMinutes * 60;
+      
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `⏰ ${title}`,
+          body: `Snoozed for ${snoozeMinutes} minutes`,
+          data: { reminderId },
+          categoryIdentifier: 'REMINDER',
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: snoozeSeconds,
+          repeats: false,
+        },
+      });
+
+      console.log(`Snooze notification scheduled for ${snoozeMinutes} minutes from now`);
+      return notificationId;
     } catch (error) {
       console.error('Error scheduling snooze notification:', error);
+      throw error;
     }
   }
 
