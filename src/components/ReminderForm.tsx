@@ -56,30 +56,39 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   
   // Time condition state
   const [hasTimeCondition, setHasTimeCondition] = useState(!!(initialValues?.rule?.time));
+  const [timeConditionType, setTimeConditionType] = useState<'range' | 'specific'>('range');
   const [startDate, setStartDate] = useState(
     initialValues?.rule?.time?.start ? new Date(initialValues.rule.time.start) : new Date()
   );
   const [endDate, setEndDate] = useState(
     initialValues?.rule?.time?.end ? new Date(initialValues.rule.time.end) : new Date()
   );
+  const [specificDateTime, setSpecificDateTime] = useState(new Date());
   
   // Time editing state
   const [editingStartTime, setEditingStartTime] = useState(false);
   const [editingEndTime, setEditingEndTime] = useState(false);
+  const [editingSpecificTime, setEditingSpecificTime] = useState(false);
   const [tempStartHour, setTempStartHour] = useState(startDate.getHours());
   const [tempStartMinute, setTempStartMinute] = useState(startDate.getMinutes());
   const [tempEndHour, setTempEndHour] = useState(endDate.getHours());
   const [tempEndMinute, setTempEndMinute] = useState(endDate.getMinutes());
+  const [tempSpecificHour, setTempSpecificHour] = useState(specificDateTime.getHours());
+  const [tempSpecificMinute, setTempSpecificMinute] = useState(specificDateTime.getMinutes());
   
   // Date editing state
   const [editingStartDate, setEditingStartDate] = useState(false);
   const [editingEndDate, setEditingEndDate] = useState(false);
+  const [editingSpecificDate, setEditingSpecificDate] = useState(false);
   const [tempStartDay, setTempStartDay] = useState(startDate.getDate());
   const [tempStartMonth, setTempStartMonth] = useState(startDate.getMonth());
   const [tempStartYear, setTempStartYear] = useState(startDate.getFullYear());
   const [tempEndDay, setTempEndDay] = useState(endDate.getDate());
   const [tempEndMonth, setTempEndMonth] = useState(endDate.getMonth());
   const [tempEndYear, setTempEndYear] = useState(endDate.getFullYear());
+  const [tempSpecificDay, setTempSpecificDay] = useState(specificDateTime.getDate());
+  const [tempSpecificMonth, setTempSpecificMonth] = useState(specificDateTime.getMonth());
+  const [tempSpecificYear, setTempSpecificYear] = useState(specificDateTime.getFullYear());
   
   // Location condition state - REMOVED (replaced by location trigger/geofencing)
   
@@ -125,6 +134,8 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     setTempStartMinute(startDate.getMinutes());
     setTempEndHour(endDate.getHours());
     setTempEndMinute(endDate.getMinutes());
+    setTempSpecificHour(specificDateTime.getHours());
+    setTempSpecificMinute(specificDateTime.getMinutes());
     
     // Sync temp date values with actual dates
     setTempStartDay(startDate.getDate());
@@ -133,6 +144,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     setTempEndDay(endDate.getDate());
     setTempEndMonth(endDate.getMonth());
     setTempEndYear(endDate.getFullYear());
+    setTempSpecificDay(specificDateTime.getDate());
+    setTempSpecificMonth(specificDateTime.getMonth());
+    setTempSpecificYear(specificDateTime.getFullYear());
 
     // Handle preset initialization
     if (preset && !initialValues) {
@@ -190,10 +204,19 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
 
     // Time condition
     if (hasTimeCondition) {
-      newRule.time = {
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-      };
+      if (timeConditionType === 'specific') {
+        // For specific time, set start and end to the same datetime
+        newRule.time = {
+          start: specificDateTime.toISOString(),
+          end: specificDateTime.toISOString(),
+        };
+      } else {
+        // For time range
+        newRule.time = {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+        };
+      }
     }
 
     // Location condition - REMOVED (replaced by location trigger/geofencing)
@@ -254,8 +277,8 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       return;
     }
 
-    // Validate date order for time conditions
-    if (hasTimeCondition && !validateDateOrder(startDate, endDate)) {
+    // Validate date order for time conditions (only for range type)
+    if (hasTimeCondition && timeConditionType === 'range' && !validateDateOrder(startDate, endDate)) {
       Alert.alert(
         'Invalid Date Range', 
         'Start date and time must be earlier than end date and time. Please adjust your time condition.',
@@ -314,7 +337,8 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   };
 
   const validateDateOrder = (startDateTime: Date, endDateTime: Date): boolean => {
-    return startDateTime < endDateTime;
+    // Allow same date/time or start before end
+    return startDateTime <= endDateTime;
   };
 
   const showDateOrderError = () => {
@@ -347,6 +371,18 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     const newDate = new Date(endDate);
     newDate.setFullYear(year, month, day);
     setEndDate(newDate);
+  };
+
+  const updateSpecificTime = (hour: number, minute: number) => {
+    const newDate = new Date(specificDateTime);
+    newDate.setHours(hour, minute);
+    setSpecificDateTime(newDate);
+  };
+
+  const updateSpecificDate = (day: number, month: number, year: number) => {
+    const newDate = new Date(specificDateTime);
+    newDate.setFullYear(year, month, day);
+    setSpecificDateTime(newDate);
   };
 
   const saveStartTime = () => {
@@ -427,6 +463,29 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     setEditingEndDate(false);
   };
 
+  const saveSpecificTime = () => {
+    updateSpecificTime(tempSpecificHour, tempSpecificMinute);
+    setEditingSpecificTime(false);
+  };
+
+  const saveSpecificDate = () => {
+    updateSpecificDate(tempSpecificDay, tempSpecificMonth, tempSpecificYear);
+    setEditingSpecificDate(false);
+  };
+
+  const cancelSpecificTimeEdit = () => {
+    setTempSpecificHour(specificDateTime.getHours());
+    setTempSpecificMinute(specificDateTime.getMinutes());
+    setEditingSpecificTime(false);
+  };
+
+  const cancelSpecificDateEdit = () => {
+    setTempSpecificDay(specificDateTime.getDate());
+    setTempSpecificMonth(specificDateTime.getMonth());
+    setTempSpecificYear(specificDateTime.getFullYear());
+    setEditingSpecificDate(false);
+  };
+
   const shouldShowSection = (section: 'time' | 'location' | 'battery' | 'options'): boolean => {
     if (!preset || preset === 'all') return true;
     if (preset === section) return true;
@@ -502,11 +561,244 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           {hasTimeCondition && (
             <View style={styles.conditionContent}>
               <Text variant="bodyMedium" style={styles.conditionDescription}>
-                Reminder will only trigger between these times
+                {timeConditionType === 'range' 
+                  ? 'Reminder will only trigger between these times' 
+                  : 'Reminder will trigger at this specific time'}
               </Text>
               
-    
+              <SegmentedButtons
+                value={timeConditionType}
+                onValueChange={(value) => setTimeConditionType(value as 'range' | 'specific')}
+                buttons={[
+                  { value: 'range', label: 'Time Range' },
+                  { value: 'specific', label: 'At a Time' },
+                ]}
+                style={styles.segmentedButtons}
+              />
               
+              {timeConditionType === 'specific' ? (
+                /* Specific Date & Time */
+                <View style={styles.timeEditContainer}>
+                  <View style={styles.timeHeader}>
+                    <Text variant="labelMedium">Specific Date & Time</Text>
+                    <View style={styles.editButtonsContainer}>
+                      <IconButton 
+                        icon={editingSpecificDate ? "close" : "calendar"} 
+                        size={16}
+                        onPress={() => {
+                          if (editingSpecificDate) {
+                            cancelSpecificDateEdit();
+                          } else {
+                            setEditingSpecificDate(true);
+                          }
+                        }}
+                      />
+                      <IconButton 
+                        icon={editingSpecificTime ? "close" : "clock"} 
+                        size={16}
+                        onPress={() => {
+                          if (editingSpecificTime) {
+                            cancelSpecificTimeEdit();
+                          } else {
+                            setEditingSpecificTime(true);
+                          }
+                        }}
+                      />
+                    </View>
+                  </View>
+                  
+                  {!editingSpecificDate && !editingSpecificTime ? (
+                    <Chip onPress={() => setEditingSpecificTime(true)}>
+                      {formatDate(specificDateTime)}
+                    </Chip>
+                  ) : null}
+                  
+                  {/* Date Picker */}
+                  {editingSpecificDate && (
+                    <View style={styles.datePickerSection}>
+                      <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Date</Text>
+                      <View style={styles.datePickerContainer}>
+                        <View style={styles.datePicker}>
+                          <Text variant="bodySmall" style={styles.timePickerLabel}>Month</Text>
+                          <ScrollView 
+                            style={styles.dateScrollView}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={40}
+                            decelerationRate="fast"
+                            nestedScrollEnabled={true}
+                          >
+                            {Array.from({ length: 12 }, (_, i) => (
+                              <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempSpecificMonth(i)}>
+                                <Text 
+                                  variant="titleMedium" 
+                                  style={[
+                                    styles.timeText,
+                                    tempSpecificMonth === i && styles.selectedTimeText
+                                  ]}
+                                >
+                                  {getMonthName(i)}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                        
+                        <View style={styles.datePicker}>
+                          <Text variant="bodySmall" style={styles.timePickerLabel}>Day</Text>
+                          <ScrollView 
+                            style={styles.dateScrollView}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={40}
+                            decelerationRate="fast"
+                            nestedScrollEnabled={true}
+                          >
+                            {Array.from({ length: getDaysInMonth(tempSpecificMonth, tempSpecificYear) }, (_, i) => (
+                              <TouchableOpacity key={i + 1} style={styles.timeItem} onPress={() => setTempSpecificDay(i + 1)}>
+                                <Text 
+                                  variant="titleMedium" 
+                                  style={[
+                                    styles.timeText,
+                                    tempSpecificDay === (i + 1) && styles.selectedTimeText
+                                  ]}
+                                >
+                                  {(i + 1).toString().padStart(2, '0')}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                        
+                        <View style={styles.datePicker}>
+                          <Text variant="bodySmall" style={styles.timePickerLabel}>Year</Text>
+                          <ScrollView 
+                            style={styles.dateScrollView}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={40}
+                            decelerationRate="fast"
+                            nestedScrollEnabled={true}
+                          >
+                            {Array.from({ length: 10 }, (_, i) => {
+                              const year = getCurrentYear() + i;
+                              return (
+                                <TouchableOpacity key={year} style={styles.timeItem} onPress={() => setTempSpecificYear(year)}>
+                                  <Text 
+                                    variant="titleMedium" 
+                                    style={[
+                                      styles.timeText,
+                                      tempSpecificYear === year && styles.selectedTimeText
+                                    ]}
+                                  >
+                                    {year}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.timeActions}>
+                        <Button 
+                          mode="outlined" 
+                          compact 
+                          onPress={cancelSpecificDateEdit}
+                          style={styles.timeActionButton}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          mode="contained" 
+                          compact 
+                          onPress={saveSpecificDate}
+                          style={styles.timeActionButton}
+                        >
+                          Save
+                        </Button>
+                      </View>
+                    </View>
+                  )}
+                  
+                  {/* Time Picker */}
+                  {editingSpecificTime && (
+                    <View style={styles.timePickerSection}>
+                      <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Time</Text>
+                      <View style={styles.timePickerContainer}>
+                        <View style={styles.timePicker}>
+                          <Text variant="bodySmall" style={styles.timePickerLabel}>Hour</Text>
+                          <ScrollView 
+                            style={styles.timeScrollView}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={40}
+                            decelerationRate="fast"
+                            nestedScrollEnabled={true}
+                          >
+                            {Array.from({ length: 24 }, (_, i) => (
+                              <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempSpecificHour(i)}>
+                                <Text 
+                                  variant="titleMedium" 
+                                  style={[
+                                    styles.timeText,
+                                    tempSpecificHour === i && styles.selectedTimeText
+                                  ]}
+                                >
+                                  {i.toString().padStart(2, '0')}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                        
+                        <Text variant="titleLarge" style={styles.timeSeparator}>:</Text>
+                        
+                        <View style={styles.timePicker}>
+                          <Text variant="bodySmall" style={styles.timePickerLabel}>Minute</Text>
+                          <ScrollView 
+                            style={styles.timeScrollView}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={40}
+                            decelerationRate="fast"
+                            nestedScrollEnabled={true}
+                          >
+                            {Array.from({ length: 60 }, (_, i) => (
+                              <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempSpecificMinute(i)}>
+                                <Text 
+                                  variant="titleMedium" 
+                                  style={[
+                                    styles.timeText,
+                                    tempSpecificMinute === i && styles.selectedTimeText
+                                  ]}
+                                >
+                                  {i.toString().padStart(2, '0')}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.timeActions}>
+                        <Button 
+                          mode="outlined" 
+                          compact 
+                          onPress={cancelSpecificTimeEdit}
+                          style={styles.timeActionButton}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          mode="contained" 
+                          compact 
+                          onPress={saveSpecificTime}
+                          style={styles.timeActionButton}
+                        >
+                          Save
+                        </Button>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <>
               {/* Start Date & Time */}
               <View style={styles.timeEditContainer}>
                 <View style={styles.timeHeader}>
@@ -555,6 +847,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 12 }, (_, i) => (
                             <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempStartMonth(i)}>
@@ -579,6 +872,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: getDaysInMonth(tempStartMonth, tempStartYear) }, (_, i) => (
                             <TouchableOpacity key={i + 1} style={styles.timeItem} onPress={() => setTempStartDay(i + 1)}>
@@ -603,6 +897,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 10 }, (_, i) => {
                             const year = getCurrentYear() + i;
@@ -657,6 +952,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 24 }, (_, i) => (
                             <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempStartHour(i)}>
@@ -683,6 +979,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 60 }, (_, i) => (
                             <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempStartMinute(i)}>
@@ -771,6 +1068,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 12 }, (_, i) => (
                             <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempEndMonth(i)}>
@@ -795,6 +1093,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: getDaysInMonth(tempEndMonth, tempEndYear) }, (_, i) => (
                             <TouchableOpacity key={i + 1} style={styles.timeItem} onPress={() => setTempEndDay(i + 1)}>
@@ -819,6 +1118,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 10 }, (_, i) => {
                             const year = getCurrentYear() + i;
@@ -873,6 +1173,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 24 }, (_, i) => (
                             <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempEndHour(i)}>
@@ -899,6 +1200,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           showsVerticalScrollIndicator={false}
                           snapToInterval={40}
                           decelerationRate="fast"
+                          nestedScrollEnabled={true}
                         >
                           {Array.from({ length: 60 }, (_, i) => (
                             <TouchableOpacity key={i} style={styles.timeItem} onPress={() => setTempEndMinute(i)}>
@@ -938,6 +1240,8 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                   </View>
                 )}
               </View>
+                </>
+              )}
             </View>
           )}
           </Card.Content>
