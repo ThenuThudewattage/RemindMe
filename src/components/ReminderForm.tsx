@@ -437,10 +437,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   return (
     <View style={styles.container}>
       {/* Purple Top Bar */}
-      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 16 }]}>
         <IconButton 
           icon="arrow-left" 
-          iconColor="#a644f0ff"
+          iconColor="white"
           onPress={onCancel}
         />
         <Text variant="titleLarge" style={styles.topBarTitle}>
@@ -1146,8 +1146,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#6B46C1', // Purple color
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1162,7 +1162,7 @@ const styles = StyleSheet.create({
     marginRight: 48, // Compensate for left icon
   },
   topBarSpacer: {
-    width: 48,
+    width: 28,
   },
   scrollContent: {
     flex: 1,

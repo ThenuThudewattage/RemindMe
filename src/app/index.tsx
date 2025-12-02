@@ -105,7 +105,7 @@ export default function HomeScreen() {
       >
         <View style={styles.heroTopRow}>
           <Text variant="headlineLarge" style={styles.brandTitle}>RemindMe+</Text>
-          <IconButton icon="bell-outline" iconColor="white" onPress={goReminders} />
+          <IconButton icon="cog-outline" iconColor="white" onPress={goSettings} />
         </View>
 
     
@@ -247,8 +247,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   hero: {
     paddingHorizontal: space(2),
-    paddingTop: space(3),
-    paddingBottom: space(3),
+    paddingTop: space(2),
+    paddingBottom: space(2),
     overflow: 'hidden',
   },
   heroTopRow: {

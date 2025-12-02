@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Linking, ImageBackground } from 'react-native';
 import { 
   Text, 
   Card, 
@@ -10,13 +10,16 @@ import {
   ActivityIndicator,
   Chip,
   Divider,
-  DataTable
+  DataTable,
+  IconButton
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import BackgroundService from '../services/background';
 import ReminderRepository from '../services/repo';
 import DatabaseService from '../services/db';
 import { Reminder, ReminderEvent } from '../types/reminder';
+import { BRAND, space } from '../theme';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -39,6 +42,8 @@ export default function SettingsScreen() {
 
   const backgroundService = BackgroundService.getInstance();
   const repo = ReminderRepository.getInstance();
+
+  const goReminders = () => router.push('/reminders/list');
 
   useEffect(() => {
     loadSettings();
@@ -220,6 +225,22 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+      {/* HERO SECTION */}
+      <ImageBackground
+        source={{
+          uri:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAADICAYAAADpAq3lAAAACXBIWXMAAAsSAAALEgHS3X78AAAAG0lEQVQ4y2NgYGBg+P//PwMDA0YwGJgYwJgBAA9bB3S6qf4yAAAAAElFTkSuQmCC',
+        }}
+        resizeMode="cover"
+        style={[styles.hero, { backgroundColor: BRAND.purple }]}
+        imageStyle={{ opacity: 0.15 }}
+      >
+        <View style={styles.heroTopRow}>
+          <Text variant="headlineLarge" style={styles.brandTitle}>RemindMe+</Text>
+          <IconButton icon="bell-outline" iconColor="white" size={24} onPress={goReminders} />
+        </View>
+      </ImageBackground>
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         
         {/* Permissions Card */}
@@ -469,6 +490,21 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  hero: {
+    paddingHorizontal: space(2),
+    paddingTop: space(2),
+    paddingBottom: space(2),
+    overflow: 'hidden',
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brandTitle: {
+    color: 'white',
+    fontWeight: '800',
   },
   centerContent: {
     justifyContent: 'center',

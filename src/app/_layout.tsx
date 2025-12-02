@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Tabs } from 'expo-router';
 import { useTheme, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { View } from 'react-native';
+import { View, Platform, AppState } from 'react-native';
+import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-status-bar';
 import DatabaseService from '../services/db';
+import { BRAND } from '../theme';
 
 function InnerTabs() {
   const theme = useTheme();
@@ -78,6 +80,15 @@ function InnerTabs() {
 export default function RootTabsLayout() {
   const [isDbReady, setIsDbReady] = useState(false);
   const theme = useTheme();
+  const appState = useRef(AppState.currentState);
+
+  // Function to ensure status bar stays purple
+  const ensureStatusBar = () => {
+    setStatusBarStyle('light');
+    if (Platform.OS === 'android') {
+      setStatusBarBackgroundColor(BRAND.purple, false);
+    }
+  };
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -95,11 +106,32 @@ export default function RootTabsLayout() {
     };
 
     initializeApp();
+
+    // Ensure status bar is set initially
+    ensureStatusBar();
+
+    // Listen for app state changes to restore status bar
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        // App has come to the foreground - restore status bar
+        console.log('App returned to foreground - restoring status bar');
+        ensureStatusBar();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   if (!isDbReady) {
     return (
       <SafeAreaProvider>
+        <StatusBar style="light" backgroundColor={BRAND.purple} />
         <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', backgroundColor: theme.colors.background }}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -109,6 +141,7 @@ export default function RootTabsLayout() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar style="light" backgroundColor={BRAND.purple} />
       <InnerTabs />
     </SafeAreaProvider>
   );
