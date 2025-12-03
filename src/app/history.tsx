@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { Text, Card, IconButton, useTheme, Chip, Avatar, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -109,6 +109,30 @@ export default function HistoryScreen() {
     loadHistory();
   };
 
+  const handleClearHistory = () => {
+    Alert.alert(
+      'Clear History',
+      'Are you sure you want to delete all event history? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear All', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const repo = ReminderRepository.getInstance();
+              await repo.clearAllHistory();
+              setEvents([]);
+            } catch (error) {
+              console.error('Failed to clear history:', error);
+              Alert.alert('Error', 'Failed to clear history. Please try again.');
+            }
+          }
+        },
+      ]
+    );
+  };
+
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'triggered': return 'bell';
@@ -159,7 +183,8 @@ export default function HistoryScreen() {
         <IconButton 
           icon="delete-outline" 
           iconColor={theme.colors.onBackground}
-          onPress={() => {/* TODO: Clear history */}} 
+          onPress={handleClearHistory}
+          disabled={events.length === 0}
         />
       </View>
 

@@ -228,6 +228,15 @@ class ReminderRepository {
     }
   }
 
+  public async clearAllHistory(): Promise<void> {
+    try {
+      await this.dbService.clearAllEvents();
+    } catch (error) {
+      console.error('Failed to clear all history:', error);
+      throw error;
+    }
+  }
+
   public async searchReminders(query: string): Promise<Reminder[]> {
     try {
       const allReminders = await this.getAllReminders();
