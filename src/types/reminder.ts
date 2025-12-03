@@ -50,6 +50,7 @@ export interface ReminderEvent {
   type: 'triggered' | 'snoozed' | 'completed' | 'dismissed';
   payload?: any;
   createdAt: string;
+  reminderTitle?: string; // Store the title so it persists even after deletion
 }
 
 export interface CreateReminderInput {

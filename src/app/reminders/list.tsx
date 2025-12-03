@@ -6,10 +6,11 @@ import {
   Text, 
   useTheme, 
   ActivityIndicator,
-  Banner
+  Banner,
+  Chip
 } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ReminderItem } from '../../components/ReminderItem';
 import { Reminder } from '../../types/reminder';
 import ReminderRepository from '../../services/repo';
@@ -17,9 +18,13 @@ import BackgroundService from '../../services/background';
 
 export default function RemindersListScreen() {
   const theme = useTheme();
+  const params = useLocalSearchParams();
+  const filterType = params.filter as string | undefined;
+  
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [filteredReminders, setFilteredReminders] = useState<Reminder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [permissions, setPermissions] = useState({
@@ -34,14 +39,21 @@ export default function RemindersListScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Update filter based on current params when screen comes into focus
+      if (params.filter) {
+        setActiveFilter(params.filter as string);
+      } else {
+        setActiveFilter(null);
+      }
+      
       loadReminders();
       checkPermissions();
-    }, [])
+    }, [params.filter])
   );
 
   useEffect(() => {
     filterReminders();
-  }, [searchQuery, reminders]);
+  }, [searchQuery, reminders, activeFilter]);
 
   const loadReminders = async () => {
     try {
@@ -101,16 +113,41 @@ export default function RemindersListScreen() {
   };
 
   const filterReminders = () => {
-    if (!searchQuery.trim()) {
-      setFilteredReminders(reminders);
-      return;
+    let filtered = [...reminders];
+
+    // Apply category filter first
+    if (activeFilter === 'today') {
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+      
+      filtered = filtered.filter(reminder => {
+        if (!reminder.enabled) return false;
+        if (reminder.rule.time?.start) {
+          const startTime = new Date(reminder.rule.time.start);
+          return startTime >= startOfDay && startTime <= endOfDay;
+        }
+        return false;
+      });
+    } else if (activeFilter === 'geofence') {
+      filtered = filtered.filter(reminder => 
+        reminder.enabled && reminder.locationTrigger?.enabled
+      );
     }
 
-    const filtered = reminders.filter(reminder =>
-      reminder.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reminder.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(reminder =>
+        reminder.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reminder.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
     setFilteredReminders(filtered);
+  };
+
+  const clearFilter = () => {
+    setActiveFilter(null);
   };
 
   const handleRefresh = async () => {
@@ -218,6 +255,18 @@ export default function RemindersListScreen() {
           value={searchQuery}
           style={styles.searchbar}
         />
+        
+        {activeFilter && (
+          <View style={styles.filterChipContainer}>
+            <Chip 
+              icon="filter" 
+              onClose={clearFilter}
+              style={styles.filterChip}
+            >
+              {activeFilter === 'today' ? 'Upcoming Today' : 'Active Geofences'}
+            </Chip>
+          </View>
+        )}
       </View>
 
       <FlatList
@@ -258,6 +307,12 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     elevation: 2,
+  },
+  filterChipContainer: {
+    marginTop: 8,
+  },
+  filterChip: {
+    alignSelf: 'flex-start',
   },
   listContainer: {
     flexGrow: 1,

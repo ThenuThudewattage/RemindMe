@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Tabs } from 'expo-router';
-import { useTheme, ActivityIndicator } from 'react-native-paper';
+import { PaperProvider, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, Platform, AppState } from 'react-native';
 import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-status-bar';
 import DatabaseService from '../services/db';
 import { BRAND } from '../theme';
+import { ThemeProvider, useAppTheme } from '../contexts/ThemeContext';
 
 function InnerTabs() {
-  const theme = useTheme();
+  const { theme, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -17,11 +18,13 @@ function InnerTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
-        // Respect device safe area so the tab bar doesn't overlap system UI
         tabBarStyle: {
+          backgroundColor: theme.colors.surface,
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom ? insets.bottom + 10 : 10,
           paddingTop: 6,
+          borderTopColor: theme.colors.outline,
+          borderTopWidth: 0.5,
         },
         tabBarLabelStyle: { fontSize: 12 },
       }}
@@ -77,14 +80,14 @@ function InnerTabs() {
   );
 }
 
-export default function RootTabsLayout() {
+function RootTabsContent() {
   const [isDbReady, setIsDbReady] = useState(false);
-  const theme = useTheme();
+  const { theme, isDark } = useAppTheme();
   const appState = useRef(AppState.currentState);
 
   // Function to ensure status bar stays purple
   const ensureStatusBar = () => {
-    setStatusBarStyle('light');
+    setStatusBarStyle(isDark ? 'light' : 'light');
     if (Platform.OS === 'android') {
       setStatusBarBackgroundColor(BRAND.purple, false);
     }
@@ -131,18 +134,30 @@ export default function RootTabsLayout() {
   if (!isDbReady) {
     return (
       <SafeAreaProvider>
-        <StatusBar style="light" backgroundColor={BRAND.purple} />
-        <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', backgroundColor: theme.colors.background }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
+        <PaperProvider theme={theme}>
+          <StatusBar style="light" backgroundColor={BRAND.purple} />
+          <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', backgroundColor: theme.colors.background }}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        </PaperProvider>
       </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" backgroundColor={BRAND.purple} />
-      <InnerTabs />
+      <PaperProvider theme={theme}>
+        <StatusBar style="light" backgroundColor={BRAND.purple} />
+        <InnerTabs />
+      </PaperProvider>
     </SafeAreaProvider>
+  );
+}
+
+export default function RootTabsLayout() {
+  return (
+    <ThemeProvider>
+      <RootTabsContent />
+    </ThemeProvider>
   );
 }

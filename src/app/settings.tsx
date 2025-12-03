@@ -11,7 +11,8 @@ import {
   Chip,
   Divider,
   DataTable,
-  IconButton
+  IconButton,
+  RadioButton
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -20,9 +21,11 @@ import ReminderRepository from '../services/repo';
 import DatabaseService from '../services/db';
 import { Reminder, ReminderEvent } from '../types/reminder';
 import { BRAND, space } from '../theme';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const { themeMode, setThemeMode, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [permissions, setPermissions] = useState({
@@ -293,6 +296,47 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
+        {/* Appearance Card */}
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Appearance
+            </Text>
+            
+            <RadioButton.Group onValueChange={value => setThemeMode(value as any)} value={themeMode}>
+              <List.Item
+                title="Light Mode"
+                description="Always use light theme"
+                left={(props) => <List.Icon {...props} icon="white-balance-sunny" />}
+                right={() => <RadioButton value="light" />}
+                onPress={() => setThemeMode('light')}
+              />
+              
+              <List.Item
+                title="Dark Mode"
+                description="Always use dark theme"
+                left={(props) => <List.Icon {...props} icon="moon-waning-crescent" />}
+                right={() => <RadioButton value="dark" />}
+                onPress={() => setThemeMode('dark')}
+              />
+              
+              <List.Item
+                title="Auto (System)"
+                description="Follow system theme settings"
+                left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
+                right={() => <RadioButton value="auto" />}
+                onPress={() => setThemeMode('auto')}
+              />
+            </RadioButton.Group>
+            
+            <View style={styles.themePreview}>
+              <Chip icon="check-circle" style={{ backgroundColor: theme.colors.primaryContainer }}>
+                Current: {isDark ? 'Dark' : 'Light'} Theme
+              </Chip>
+            </View>
+          </Card.Content>
+        </Card>
+
         {/* Background Tasks Card */}
         <Card style={styles.card} mode="outlined">
           <Card.Content>
@@ -543,6 +587,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     opacity: 0.7,
     fontStyle: 'italic',
+  },
+  themePreview: {
+    marginTop: 16,
+    alignItems: 'center',
   },
   statsContainer: {
     flexDirection: 'row',

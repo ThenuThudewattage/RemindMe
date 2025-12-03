@@ -95,6 +95,7 @@ class DatabaseService {
         reminder_id INTEGER NOT NULL,
         type TEXT NOT NULL,
         payload_json TEXT,
+        reminder_title TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (reminder_id) REFERENCES reminders (id) ON DELETE CASCADE
       );
@@ -120,19 +121,31 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
-      // Check if location_trigger_json column exists, if not add it
-      const result = await this.db.getAllAsync(`PRAGMA table_info(reminders)`);
-      const columns = result.map((row: any) => row.name);
+      // Check if location_trigger_json column exists in reminders table
+      const reminderColumns = await this.db.getAllAsync(`PRAGMA table_info(reminders)`);
+      const reminderColumnNames = reminderColumns.map((row: any) => row.name);
       
-      if (!columns.includes('location_trigger_json')) {
+      if (!reminderColumnNames.includes('location_trigger_json')) {
         console.log('Adding location_trigger_json column to reminders table...');
         await this.db.execAsync(`
           ALTER TABLE reminders ADD COLUMN location_trigger_json TEXT;
         `);
         console.log('Migration completed: location_trigger_json column added');
-      } else {
-        console.log('Database schema is up to date');
       }
+
+      // Check if reminder_title column exists in events table
+      const eventColumns = await this.db.getAllAsync(`PRAGMA table_info(events)`);
+      const eventColumnNames = eventColumns.map((row: any) => row.name);
+      
+      if (!eventColumnNames.includes('reminder_title')) {
+        console.log('Adding reminder_title column to events table...');
+        await this.db.execAsync(`
+          ALTER TABLE events ADD COLUMN reminder_title TEXT;
+        `);
+        console.log('Migration completed: reminder_title column added');
+      }
+
+      console.log('Database schema is up to date');
     } catch (error) {
       console.error('Migration failed:', error);
       
@@ -336,16 +349,16 @@ class DatabaseService {
     await this.db.runAsync('DELETE FROM reminders WHERE id = ?', [id]);
   }
 
-  public async createEvent(reminderId: number, type: ReminderEvent['type'], payload?: any): Promise<ReminderEvent> {
+  public async createEvent(reminderId: number, type: ReminderEvent['type'], payload?: any, reminderTitle?: string): Promise<ReminderEvent> {
     if (!this.db) throw new Error('Database not initialized');
 
     const now = new Date().toISOString();
     const payloadJson = payload ? JSON.stringify(payload) : null;
     
     const result = await this.db.runAsync(
-      `INSERT INTO events (reminder_id, type, payload_json, created_at) 
-       VALUES (?, ?, ?, ?)`,
-      [reminderId, type, payloadJson, now]
+      `INSERT INTO events (reminder_id, type, payload_json, reminder_title, created_at) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [reminderId, type, payloadJson, reminderTitle || null, now]
     );
 
     return {
@@ -353,6 +366,7 @@ class DatabaseService {
       reminderId,
       type,
       payload,
+      reminderTitle,
       createdAt: now,
     };
   }
@@ -365,6 +379,7 @@ class DatabaseService {
       reminder_id: number;
       type: string;
       payload_json: string | null;
+      reminder_title: string | null;
       created_at: string;
     }>('SELECT * FROM events WHERE reminder_id = ? ORDER BY created_at DESC', [reminderId]);
 
@@ -373,6 +388,7 @@ class DatabaseService {
       reminderId: result.reminder_id,
       type: result.type as ReminderEvent['type'],
       payload: result.payload_json ? JSON.parse(result.payload_json) : undefined,
+      reminderTitle: result.reminder_title || undefined,
       createdAt: result.created_at,
     }));
   }
@@ -385,6 +401,7 @@ class DatabaseService {
       reminder_id: number;
       type: string;
       payload_json: string | null;
+      reminder_title: string | null;
       created_at: string;
     }>('SELECT * FROM events ORDER BY created_at DESC LIMIT ?', [limit]);
 
@@ -393,6 +410,7 @@ class DatabaseService {
       reminderId: result.reminder_id,
       type: result.type as ReminderEvent['type'],
       payload: result.payload_json ? JSON.parse(result.payload_json) : undefined,
+      reminderTitle: result.reminder_title || undefined,
       createdAt: result.created_at,
     }));
   }
@@ -405,6 +423,11 @@ class DatabaseService {
     const cutoff = cutoffDate.toISOString();
 
     await this.db.runAsync('DELETE FROM events WHERE created_at < ?', [cutoff]);
+  }
+
+  public async clearAllEvents(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.runAsync('DELETE FROM events');
   }
 
   // Geofence status methods
