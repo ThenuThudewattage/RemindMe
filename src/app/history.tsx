@@ -236,50 +236,63 @@ export default function HistoryScreen() {
                 <View style={styles.dateHeaderLine} />
               </View>
               {dateEvents.map((event) => (
-                <Card key={event.id} mode="elevated" style={styles.historyCard} elevation={1}>
+                <Card key={event.id} mode="elevated" style={styles.historyCard} elevation={2}>
                   <Card.Content style={styles.historyContent}>
-                    <Avatar.Icon 
-                      size={44} 
-                      icon={getEventIcon(event.type)} 
-                      style={[styles.historyAvatar, { backgroundColor: `${getEventColor(event.type)}20` }]}
-                      color={getEventColor(event.type)}
-                    />
+                    <View style={[styles.eventIconContainer, { backgroundColor: `${getEventColor(event.type)}15` }]}>
+                      <Avatar.Icon 
+                        size={48} 
+                        icon={getEventIcon(event.type)} 
+                        style={[styles.historyAvatar, { backgroundColor: 'transparent' }]}
+                        color={getEventColor(event.type)}
+                      />
+                    </View>
                     <View style={styles.historyDetails}>
                       <View style={styles.titleRow}>
-                        <Text variant="titleMedium" style={styles.historyTitle}>
-                          {event.reminderTitle}
-                        </Text>
-                        {event.isDeleted && (
-                          <Chip 
-                            mode="flat" 
-                            compact 
-                            style={styles.deletedChip}
-                            textStyle={styles.deletedChipText}
-                            icon="delete"
-                          >
-                            DELETED
-                          </Chip>
-                        )}
+                        <View style={styles.titleContainer}>
+                          <Text variant="titleMedium" style={styles.historyTitle}>
+                            {event.reminderTitle}
+                          </Text>
+                          <View style={styles.badgesRow}>
+                            <Chip 
+                              mode="flat" 
+                              compact 
+                              style={[styles.statusChip, { backgroundColor: getEventColor(event.type) }]}
+                              textStyle={styles.statusChipText}
+                            >
+                              {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                            </Chip>
+                            {event.isDeleted && (
+                              <Chip 
+                                mode="flat" 
+                                compact 
+                                style={styles.deletedChip}
+                                textStyle={styles.deletedChipText}
+                                icon="delete-outline"
+                              >
+                                DELETED
+                              </Chip>
+                            )}
+                          </View>
+                        </View>
                       </View>
                       {event.reminderNotes && (
-                        <Text variant="bodySmall" style={styles.notesText}>
-                          {event.reminderNotes}
-                        </Text>
+                        <View style={styles.notesContainer}>
+                          <MaterialCommunityIcons name="note-text-outline" size={14} color="#666" />
+                          <Text variant="bodySmall" style={styles.notesText} numberOfLines={2}>
+                            {event.reminderNotes}
+                          </Text>
+                        </View>
                       )}
                       {event.conditions && (
-                        <Text variant="bodySmall" style={styles.conditionsText}>
-                          {event.conditions}
-                        </Text>
+                        <View style={styles.conditionsContainer}>
+                          <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={14} color="#888" />
+                          <Text variant="bodySmall" style={styles.conditionsText} numberOfLines={2}>
+                            {event.conditions}
+                          </Text>
+                        </View>
                       )}
-                      <View style={styles.historyMeta}>
-                        <Chip 
-                          mode="outlined" 
-                          compact 
-                          style={[styles.actionChip, { borderColor: getEventColor(event.type) }]}
-                          textStyle={{ color: getEventColor(event.type), fontSize: 12, fontWeight: '600' }}
-                        >
-                          {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-                        </Chip>
+                      <View style={styles.timestampRow}>
+                        <MaterialCommunityIcons name="clock-outline" size={14} color="#999" />
                         <Text variant="bodySmall" style={styles.timeText}>
                           {formatEventTime(event.createdAt)}
                         </Text>
@@ -288,7 +301,9 @@ export default function HistoryScreen() {
                     {!event.isDeleted && (
                       <IconButton
                         icon="chevron-right"
-                        size={20}
+                        size={22}
+                        iconColor={theme.colors.primary}
+                        style={styles.chevronButton}
                         onPress={() => router.push(`/reminders/detail?id=${event.reminderId}`)}
                       />
                     )}
@@ -362,75 +377,115 @@ const styles = StyleSheet.create({
   },
   historyCard: {
     marginBottom: space(1.5),
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
   },
   historyContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 6,
+    gap: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+  },
+  eventIconContainer: {
+    borderRadius: 16,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   historyAvatar: {
-    marginTop: 2,
+    marginTop: 0,
   },
   historyDetails: {
     flex: 1,
-    gap: 8,
+    gap: 10,
   },
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  titleContainer: {
+    gap: 8,
   },
   historyTitle: {
-    fontWeight: '600',
-    fontSize: 16,
-    lineHeight: 22,
-    flex: 1,
+    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 24,
+    color: '#1a1a1a',
   },
-  deletedChip: {
-    height: 22,
-    backgroundColor: '#ff5252',
+  badgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
   },
-  deletedChipText: {
+  statusChip: {
+    height: 24,
+    borderRadius: 12,
+  },
+  statusChipText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
+  deletedChip: {
+    height: 35,
+    backgroundColor: '#d32f2f',
+    borderRadius: 13,
+    paddingHorizontal: 2,
+  },
+  deletedChipText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  notesContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingLeft: 2,
+  },
   notesText: {
-    opacity: 0.75,
+    flex: 1,
+    opacity: 0.8,
     fontStyle: 'italic',
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 4,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#555',
+  },
+  conditionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingLeft: 2,
   },
   conditionsText: {
-    opacity: 0.65,
-    fontSize: 12,
-    lineHeight: 16,
-    color: '#555',
-    marginBottom: 6,
+    flex: 1,
+    opacity: 0.7,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#666',
   },
-  historyMeta: {
+  timestampRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 2,
-  },
-  actionChip: {
-    height: 26,
-    borderRadius: 13,
+    gap: 6,
+    marginTop: 4,
+    paddingLeft: 2,
   },
   timeText: {
     opacity: 0.6,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
+    color: '#888',
+  },
+  chevronButton: {
+    margin: 0,
+    marginTop: 4,
   },
   typeChip: {
     height: 28,
