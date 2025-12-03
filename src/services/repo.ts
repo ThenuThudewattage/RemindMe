@@ -28,16 +28,25 @@ class ReminderRepository {
       throw new Error('Database initialization failed - database is not ready');
     }
 
-    // Set up notification action handler to avoid circular dependency
+    // Initialize notification service
     const notificationService = NotificationService.getInstance();
+    await notificationService.initialize();
+    
+    // Set up notification action handler to avoid circular dependency
     notificationService.setNotificationActionHandler(async (reminderId: number, action: string, title: string) => {
       switch (action) {
         case 'SNOOZE':
           await this.snoozeReminder(reminderId, 10); // Snooze for 10 minutes
           await notificationService.scheduleSnoozeNotification(reminderId, title);
+          console.log(`Reminder ${reminderId} snoozed for 10 minutes`);
           break;
         case 'DONE':
           await this.markReminderCompleted(reminderId);
+          console.log(`Reminder ${reminderId} marked as completed`);
+          break;
+        case 'DISMISS':
+          await this.dismissReminder(reminderId);
+          console.log(`Reminder ${reminderId} dismissed`);
           break;
         case 'OPEN':
         default:

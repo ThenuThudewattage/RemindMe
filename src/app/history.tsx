@@ -170,6 +170,31 @@ export default function HistoryScreen() {
     return format(eventDate, 'MMM d, yyyy');
   };
 
+  const getDateHeader = (timestamp: string) => {
+    const eventDate = new Date(timestamp);
+    const now = new Date();
+    const isToday = eventDate.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = eventDate.toDateString() === yesterday.toDateString();
+
+    if (isToday) return 'Today';
+    if (isYesterday) return 'Yesterday';
+    return format(eventDate, 'EEEE, MMM d, yyyy');
+  };
+
+  const groupEventsByDate = (events: EnrichedEvent[]) => {
+    const groups: { [key: string]: EnrichedEvent[] } = {};
+    events.forEach(event => {
+      const dateKey = new Date(event.createdAt).toDateString();
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(event);
+    });
+    return groups;
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
@@ -201,65 +226,76 @@ export default function HistoryScreen() {
             <Text variant="bodyMedium" style={styles.loadingText}>Loading history...</Text>
           </View>
         ) : events.length > 0 ? (
-          events.map((event) => (
-            <Card key={event.id} mode="outlined" style={styles.historyCard}>
-              <Card.Content style={styles.historyContent}>
-                <Avatar.Icon 
-                  size={40} 
-                  icon={getEventIcon(event.type)} 
-                  style={[styles.historyAvatar, { backgroundColor: `${getEventColor(event.type)}20` }]}
-                  color={getEventColor(event.type)}
-                />
-                <View style={styles.historyDetails}>
-                  <View style={styles.titleRow}>
-                    <Text variant="titleMedium" style={styles.historyTitle}>
-                      {event.reminderTitle}
-                    </Text>
-                    {event.isDeleted && (
-                      <Chip 
-                        mode="flat" 
-                        compact 
-                        style={styles.deletedChip}
-                        textStyle={styles.deletedChipText}
-                        icon="delete"
-                      >
-                        DELETED
-                      </Chip>
+          Object.entries(groupEventsByDate(events)).map(([dateKey, dateEvents]) => (
+            <View key={dateKey} style={styles.dateGroup}>
+              <View style={styles.dateHeaderContainer}>
+                <View style={styles.dateHeaderLine} />
+                <Text variant="labelLarge" style={styles.dateHeader}>
+                  {getDateHeader(dateEvents[0].createdAt)}
+                </Text>
+                <View style={styles.dateHeaderLine} />
+              </View>
+              {dateEvents.map((event) => (
+                <Card key={event.id} mode="elevated" style={styles.historyCard} elevation={1}>
+                  <Card.Content style={styles.historyContent}>
+                    <Avatar.Icon 
+                      size={44} 
+                      icon={getEventIcon(event.type)} 
+                      style={[styles.historyAvatar, { backgroundColor: `${getEventColor(event.type)}20` }]}
+                      color={getEventColor(event.type)}
+                    />
+                    <View style={styles.historyDetails}>
+                      <View style={styles.titleRow}>
+                        <Text variant="titleMedium" style={styles.historyTitle}>
+                          {event.reminderTitle}
+                        </Text>
+                        {event.isDeleted && (
+                          <Chip 
+                            mode="flat" 
+                            compact 
+                            style={styles.deletedChip}
+                            textStyle={styles.deletedChipText}
+                            icon="delete"
+                          >
+                            DELETED
+                          </Chip>
+                        )}
+                      </View>
+                      {event.reminderNotes && (
+                        <Text variant="bodySmall" style={styles.notesText}>
+                          {event.reminderNotes}
+                        </Text>
+                      )}
+                      {event.conditions && (
+                        <Text variant="bodySmall" style={styles.conditionsText}>
+                          {event.conditions}
+                        </Text>
+                      )}
+                      <View style={styles.historyMeta}>
+                        <Chip 
+                          mode="outlined" 
+                          compact 
+                          style={[styles.actionChip, { borderColor: getEventColor(event.type) }]}
+                          textStyle={{ color: getEventColor(event.type), fontSize: 12, fontWeight: '600' }}
+                        >
+                          {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                        </Chip>
+                        <Text variant="bodySmall" style={styles.timeText}>
+                          {formatEventTime(event.createdAt)}
+                        </Text>
+                      </View>
+                    </View>
+                    {!event.isDeleted && (
+                      <IconButton
+                        icon="chevron-right"
+                        size={20}
+                        onPress={() => router.push(`/reminders/detail?id=${event.reminderId}`)}
+                      />
                     )}
-                  </View>
-                  {event.reminderNotes && (
-                    <Text variant="bodySmall" style={styles.notesText}>
-                      {event.reminderNotes}
-                    </Text>
-                  )}
-                  {event.conditions && (
-                    <Text variant="bodySmall" style={styles.conditionsText}>
-                      {event.conditions}
-                    </Text>
-                  )}
-                  <View style={styles.historyMeta}>
-                    <Chip 
-                      mode="outlined" 
-                      compact 
-                      style={[styles.actionChip, { borderColor: getEventColor(event.type) }]}
-                      textStyle={{ color: getEventColor(event.type), fontSize: 12 }}
-                    >
-                      {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-                    </Chip>
-                    <Text variant="bodySmall" style={styles.timeText}>
-                      {formatEventTime(event.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-                {!event.isDeleted && (
-                  <IconButton
-                    icon="chevron-right"
-                    size={20}
-                    onPress={() => router.push(`/reminders/detail?id=${event.reminderId}`)}
-                  />
-                )}
-              </Card.Content>
-            </Card>
+                  </Card.Content>
+                </Card>
+              ))}
+            </View>
           ))
         ) : (
           <View style={styles.emptyState}>
@@ -282,75 +318,119 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { 
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space(1),
-    paddingVertical: space(1),
+    paddingHorizontal: space(2),
+    paddingVertical: space(1.5),
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   headerTitle: {
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 22,
   },
   content: {
     flex: 1,
+    paddingTop: space(2),
+  },
+  dateGroup: {
+    marginBottom: space(3),
     paddingHorizontal: space(2),
   },
+  dateHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: space(2),
+    gap: 12,
+  },
+  dateHeaderLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  dateHeader: {
+    fontWeight: '600',
+    color: '#666',
+    textTransform: 'uppercase',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
   historyCard: {
-    marginBottom: space(1),
-    borderRadius: 12,
+    marginBottom: space(1.5),
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
   },
   historyContent: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
+    alignItems: 'flex-start',
+    gap: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 6,
   },
   historyAvatar: {
-    backgroundColor: 'rgba(103,80,164,0.12)',
+    marginTop: 2,
   },
   historyDetails: {
     flex: 1,
-    gap: 6,
+    gap: 8,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flexWrap: 'wrap',
+    marginBottom: 2,
   },
   historyTitle: {
-    fontWeight: '500',
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 22,
+    flex: 1,
   },
   deletedChip: {
-    height: 24,
-    backgroundColor: '#f44336',
+    height: 22,
+    backgroundColor: '#ff5252',
   },
   deletedChipText: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   notesText: {
-    opacity: 0.7,
+    opacity: 0.75,
     fontStyle: 'italic',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 4,
   },
   conditionsText: {
-    opacity: 0.6,
+    opacity: 0.65,
     fontSize: 12,
-    color: '#666',
+    lineHeight: 16,
+    color: '#555',
+    marginBottom: 6,
   },
   historyMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    marginTop: 2,
   },
   actionChip: {
-    height: 24,
+    height: 26,
+    borderRadius: 13,
   },
   timeText: {
-    opacity: 0.7,
+    opacity: 0.6,
+    fontSize: 12,
+    fontWeight: '500',
   },
   typeChip: {
     height: 28,
@@ -358,23 +438,28 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: space(4),
-    gap: 12,
+    paddingVertical: space(8),
+    paddingHorizontal: space(4),
+    gap: 16,
   },
   emptyTitle: {
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 18,
   },
   emptyText: {
     textAlign: 'center',
-    maxWidth: 200,
+    maxWidth: 240,
+    lineHeight: 20,
+    fontSize: 14,
   },
   loadingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: space(4),
-    gap: 12,
+    paddingVertical: space(8),
+    gap: 16,
   },
   loadingText: {
     opacity: 0.7,
+    fontSize: 14,
   },
 });

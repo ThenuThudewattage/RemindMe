@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useTheme, ActivityIndicator, Text } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { ReminderForm } from '../../components/ReminderForm';
@@ -15,6 +15,7 @@ export const href = null; // keep this screen OUT of the bottom tabs
 
 export default function EditReminderScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string; edit?: string; preset?: Preset }>();
 
   const [loading, setLoading] = useState(false);
@@ -132,17 +133,17 @@ export default function EditReminderScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
+      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" />
         <Text variant="bodyLarge" style={{ marginTop: 16, opacity: 0.7 }}>
           Loading reminder...
         </Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <ReminderForm
         initialValues={initialValues}                // for EDIT
         defaultCreateValues={defaultCreateValues}    // for CREATE with preset
@@ -151,7 +152,7 @@ export default function EditReminderScreen() {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

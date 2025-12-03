@@ -228,7 +228,7 @@ export default function RemindersListScreen() {
   }
 
   return (
-  <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+  <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       {showPermissionBanner && (
         <Banner
           visible={showPermissionBanner}
@@ -285,7 +285,7 @@ export default function RemindersListScreen() {
         style={[styles.fab, { backgroundColor: theme.colors.primary, bottom: insets.bottom ? insets.bottom + 16 : 80 }]}
         onPress={handleCreateReminder}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

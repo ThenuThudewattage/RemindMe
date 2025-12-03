@@ -10,7 +10,7 @@ import {
   Divider,
   List
 } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { format } from 'date-fns';
 import { Reminder, ReminderEvent } from '../../types/reminder';
@@ -19,6 +19,7 @@ import GeofencingService from '../../features/geofencing/service';
 
 export default function ReminderDetailScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [reminder, setReminder] = useState<Reminder | null>(null);
   const [events, setEvents] = useState<ReminderEvent[]>([]);
@@ -168,25 +169,25 @@ export default function ReminderDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.centerContent]}>
+      <View style={[styles.container, styles.centerContent, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" />
         <Text variant="bodyLarge" style={styles.loadingText}>
           Loading reminder details...
         </Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!reminder) {
     return (
-      <SafeAreaView style={[styles.container, styles.centerContent]}>
+      <View style={[styles.container, styles.centerContent, { paddingTop: insets.top }]}>
         <Text variant="headlineSmall">Reminder not found</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header Card */}
         <Card style={styles.card} mode="outlined">
@@ -320,7 +321,7 @@ export default function ReminderDetailScreen() {
           </Button>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

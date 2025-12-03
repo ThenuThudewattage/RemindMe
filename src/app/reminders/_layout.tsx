@@ -16,11 +16,12 @@ export default function RemindersLayout() {
         }}
       />
       
-      {/* Edit screen - this will NOT show tabs */}
+      {/* Edit screen - this will NOT show tabs (full screen modal) */}
       <Stack.Screen 
         name="edit" 
         options={{
-          presentation: 'modal', // Optional: makes it feel more like a modal
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
         }}
       />
       
@@ -28,7 +29,8 @@ export default function RemindersLayout() {
       <Stack.Screen 
         name="detail" 
         options={{
-          // Standard screen without tabs
+          presentation: 'card',
+          animation: 'slide_from_right',
         }}
       />
     </Stack>
