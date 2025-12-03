@@ -145,10 +145,10 @@ export default function HistoryScreen() {
 
   const getEventColor = (type: string) => {
     switch (type) {
-      case 'triggered': return theme.colors.primary;
-      case 'snoozed': return '#FFA000';
-      case 'completed': return '#4CAF50';
-      case 'dismissed': return '#9E9E9E';
+      case 'triggered': return '#6750A4'; // Rich purple
+      case 'snoozed': return '#FF9800'; // Vibrant orange
+      case 'completed': return '#4CAF50'; // Green
+      case 'dismissed': return '#607D8B'; // Blue-gray
       default: return theme.colors.onSurface;
     }
   };
@@ -422,14 +422,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   statusChip: {
-    height: 24,
-    borderRadius: 12,
+    height: 35,
+    borderRadius: 14,
   },
   statusChipText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   deletedChip: {
     height: 35,
