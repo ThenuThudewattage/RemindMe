@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ImageBackground, ScrollView } from 'react-native';
+import { View, StyleSheet, ImageBackground, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Card, Button, IconButton, useTheme, Chip, Avatar, FAB, TextInput } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -8,12 +8,57 @@ import NotificationService from '../services/notifications'; // OPTIONAL: only i
 import BatteryService from '../services/battery';
 import { BatteryState } from '../types/reminder';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import ReminderRepository from '../services/repo';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [batteryState, setBatteryState] = useState<BatteryState | null>(null);
+  const [upcomingTodayCount, setUpcomingTodayCount] = useState<number>(0);
+  const [activeGeofencesCount, setActiveGeofencesCount] = useState<number>(0);
+
+  // Load dashboard metrics
+  const loadMetrics = async () => {
+    try {
+      const repo = ReminderRepository.getInstance();
+      const allReminders = await repo.getAllReminders();
+      
+      // Count upcoming today (time-based reminders scheduled for today)
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+      
+      const todayReminders = allReminders.filter(reminder => {
+        if (!reminder.enabled) return false;
+        
+        if (reminder.rule.time?.start) {
+          const startTime = new Date(reminder.rule.time.start);
+          return startTime >= startOfDay && startTime <= endOfDay;
+        }
+        return false;
+      });
+      
+      setUpcomingTodayCount(todayReminders.length);
+      
+      // Count active geofences (enabled location-based reminders)
+      const activeGeofences = allReminders.filter(reminder => 
+        reminder.enabled && reminder.locationTrigger?.enabled
+      );
+      
+      setActiveGeofencesCount(activeGeofences.length);
+    } catch (error) {
+      console.error('Failed to load metrics:', error);
+    }
+  };
+
+  // Reload metrics when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadMetrics();
+    }, [])
+  );
 
   // Initialize battery service and get current battery state
   useEffect(() => {
@@ -152,25 +197,37 @@ export default function HomeScreen() {
 
       {/* Metric Cards */}
         <View style={styles.metricsRow}>
-          <Card mode="elevated" style={styles.metricCard}>
-            <Card.Content style={styles.metricContent}>
-              <Avatar.Icon size={40} icon="calendar-check" style={styles.metricAvatar} />
-              <View style={{ flex: 1 }}>
-                <Text variant="headlineSmall">4</Text>
-                <Text variant="bodySmall" style={styles.muted}>Upcoming today</Text>
-              </View>
-            </Card.Content>
-          </Card>
+          <TouchableOpacity 
+            onPress={() => router.push('/reminders/list?filter=today')} 
+            style={styles.metricTouchable} 
+            activeOpacity={0.7}
+          >
+            <Card mode="elevated" style={styles.metricCard}>
+              <Card.Content style={styles.metricContent}>
+                <Avatar.Icon size={40} icon="calendar-check" style={styles.metricAvatar} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="headlineSmall">{upcomingTodayCount}</Text>
+                  <Text variant="bodySmall" style={styles.muted}>Upcoming today</Text>
+                </View>
+              </Card.Content>
+            </Card>
+          </TouchableOpacity>
 
-          <Card mode="elevated" style={styles.metricCard}>
-            <Card.Content style={styles.metricContent}>
-              <Avatar.Icon size={40} icon="map-marker-radius-outline" style={styles.metricAvatar} />
-              <View style={{ flex: 1 }}>
-                <Text variant="headlineSmall">3</Text>
-                <Text variant="bodySmall" style={styles.muted}>Active geofences</Text>
-              </View>
-            </Card.Content>
-          </Card>
+          <TouchableOpacity 
+            onPress={() => router.push('/reminders/list?filter=geofence')} 
+            style={styles.metricTouchable} 
+            activeOpacity={0.7}
+          >
+            <Card mode="elevated" style={styles.metricCard}>
+              <Card.Content style={styles.metricContent}>
+                <Avatar.Icon size={40} icon="map-marker-radius-outline" style={styles.metricAvatar} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="headlineSmall">{activeGeofencesCount}</Text>
+                  <Text variant="bodySmall" style={styles.muted}>Active geofences</Text>
+                </View>
+              </Card.Content>
+            </Card>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.metricsRow}>
@@ -293,7 +350,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space(2), paddingTop: space(2), paddingBottom: space(3) },
 
   metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  metricCard: { flex: 1, backgroundColor: 'white' },
+  metricTouchable: { flex: 1 },
+  metricCard: { backgroundColor: 'white' },
   metricCardWide: { flex: 1, backgroundColor: 'white' },
   metricContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricAvatar: { backgroundColor: 'rgba(103,80,164,0.12)' },
