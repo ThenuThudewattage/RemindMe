@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   },
   statusChipText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
