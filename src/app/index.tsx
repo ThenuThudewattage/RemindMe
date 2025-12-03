@@ -6,10 +6,11 @@ import { router } from 'expo-router';
 import { BRAND, space } from '../theme';
 import NotificationService from '../services/notifications'; // OPTIONAL: only if you want quick test action
 import BatteryService from '../services/battery';
-import { BatteryState } from '../types/reminder';
+import { BatteryState, ReminderEvent, Reminder } from '../types/reminder';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ReminderRepository from '../services/repo';
 import { useFocusEffect } from '@react-navigation/native';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const [batteryState, setBatteryState] = useState<BatteryState | null>(null);
   const [upcomingTodayCount, setUpcomingTodayCount] = useState<number>(0);
   const [activeGeofencesCount, setActiveGeofencesCount] = useState<number>(0);
+  const [recentEvents, setRecentEvents] = useState<Array<ReminderEvent & { reminderTitle?: string }>>([]);
 
   // Load dashboard metrics
   const loadMetrics = async () => {
@@ -48,6 +50,22 @@ export default function HomeScreen() {
       );
       
       setActiveGeofencesCount(activeGeofences.length);
+
+      // Load recent events for history
+      const events = await repo.getRecentEvents(3); // Get last 3 events
+      
+      // Enrich events with reminder titles
+      const enrichedEvents = await Promise.all(
+        events.map(async (event) => {
+          const reminder = await repo.getReminder(event.reminderId);
+          return {
+            ...event,
+            reminderTitle: reminder?.title || 'Unknown Reminder'
+          };
+        })
+      );
+      
+      setRecentEvents(enrichedEvents);
     } catch (error) {
       console.error('Failed to load metrics:', error);
     }
@@ -100,7 +118,7 @@ export default function HomeScreen() {
     };
   }, []);
 
-  const getBatteryIcon = () => {
+  const getBatteryIcon = (): string => {
     if (!batteryState) return 'battery-50';
     
     const level = batteryState.batteryLevel;
@@ -123,7 +141,7 @@ export default function HomeScreen() {
     return 'battery-outline';
   };
 
-  const getBatteryColor = () => {
+  const getBatteryColor = (): string => {
     if (!batteryState) return '#4CAF50';
     
     const level = batteryState.batteryLevel;
@@ -132,6 +150,34 @@ export default function HomeScreen() {
     return '#F44336'; // Red
   };
 
+  const getEventIcon = (type: string): string => {
+    switch (type) {
+      case 'snoozed': return 'sleep';
+      case 'triggered': return 'bell-ring';
+      case 'completed': return 'check-circle';
+      case 'dismissed': return 'close-circle';
+      default: return 'information';
+    }
+  };
+
+  const getEventText = (event: ReminderEvent & { reminderTitle?: string }): string => {
+    const timeAgo = formatDistanceToNow(new Date(event.createdAt), { addSuffix: true });
+    
+    switch (event.type) {
+      case 'snoozed':
+        return `Snoozed "${event.reminderTitle}" · ${timeAgo}`;
+      case 'triggered':
+        return `Triggered "${event.reminderTitle}" · ${timeAgo}`;
+      case 'completed':
+        return `Completed "${event.reminderTitle}" · ${timeAgo}`;
+      case 'dismissed':
+        return `Dismissed "${event.reminderTitle}" · ${timeAgo}`;
+      default:
+        return `"${event.reminderTitle}" · ${timeAgo}`;
+    }
+  };
+
+  
   const goReminders = () => router.push('/reminders/list');
   const goSettings = () => router.push('/settings');
   const goHistory = () => router.push('/history');
@@ -266,8 +312,15 @@ export default function HomeScreen() {
                 View All
               </Button>
             </View>
-            <Text variant="bodySmall" style={styles.muted}>Snoozed “Pick up groceries” · 12m ago</Text>
-            <Text variant="bodySmall" style={styles.muted}>Fired “Team meeting” · 9:00 AM</Text>
+            {recentEvents.length > 0 ? (
+              recentEvents.map((event, index) => (
+                <Text key={event.id || index} variant="bodySmall" style={styles.muted}>
+                  {getEventText(event)}
+                </Text>
+              ))
+            ) : (
+              <Text variant="bodySmall" style={styles.muted}>No recent activity</Text>
+            )}
           </Card.Content>
         </Card>
       </ScrollView>

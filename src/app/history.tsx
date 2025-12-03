@@ -2,25 +2,83 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, IconButton, useTheme, Chip, Avatar, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { space } from '../theme';
 import ReminderRepository from '../services/repo';
-import { ReminderEvent } from '../types/reminder';
+import { ReminderEvent, Reminder } from '../types/reminder';
 import { format } from 'date-fns';
+import { useCallback } from 'react';
+
+interface EnrichedEvent extends ReminderEvent {
+  reminderTitle: string;
+  reminderNotes?: string;
+  isDeleted: boolean;
+  conditions?: string;
+}
 
 export default function HistoryScreen() {
   const theme = useTheme();
-  const [events, setEvents] = useState<ReminderEvent[]>([]);
+  const [events, setEvents] = useState<EnrichedEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const formatRuleDescription = (reminder: Reminder): string => {
+    const conditions: string[] = [];
+    
+    if (reminder.rule.time) {
+      if (reminder.rule.time.start && reminder.rule.time.end) {
+        const start = format(new Date(reminder.rule.time.start), 'MMM d, HH:mm');
+        const end = format(new Date(reminder.rule.time.end), 'MMM d, HH:mm');
+        conditions.push(`Between ${start} and ${end}`);
+      } else if (reminder.rule.time.start) {
+        const start = format(new Date(reminder.rule.time.start), 'MMM d, HH:mm');
+        conditions.push(`After ${start}`);
+      } else if (reminder.rule.time.end) {
+        const end = format(new Date(reminder.rule.time.end), 'MMM d, HH:mm');
+        conditions.push(`Before ${end}`);
+      }
+    }
+    
+    if (reminder.rule.location) {
+      conditions.push(`Within ${reminder.rule.location.radius}m of location`);
+    }
+    
+    if (reminder.rule.battery) {
+      if (reminder.rule.battery.min !== undefined && reminder.rule.battery.max !== undefined) {
+        conditions.push(`Battery ${reminder.rule.battery.min}%-${reminder.rule.battery.max}%`);
+      } else if (reminder.rule.battery.min !== undefined) {
+        conditions.push(`Battery above ${reminder.rule.battery.min}%`);
+      } else if (reminder.rule.battery.max !== undefined) {
+        conditions.push(`Battery below ${reminder.rule.battery.max}%`);
+      }
+    }
+    
+    return conditions.length > 0 ? conditions.join(' • ') : 'No conditions';
+  };
 
   const loadHistory = async () => {
     try {
       const repo = ReminderRepository.getInstance();
       const recentEvents = await repo.getRecentEvents(50); // Get last 50 events
       
-      setEvents(recentEvents);
+      // Enrich events with reminder details
+      const enrichedEvents = await Promise.all(
+        recentEvents.map(async (event) => {
+          const reminder = await repo.getReminder(event.reminderId);
+          const isDeleted = !reminder;
+          
+          return {
+            ...event,
+            reminderTitle: event.reminderTitle || reminder?.title || `Reminder #${event.reminderId}`,
+            reminderNotes: reminder?.notes,
+            isDeleted,
+            conditions: reminder ? formatRuleDescription(reminder) : undefined
+          };
+        })
+      );
+      
+      setEvents(enrichedEvents);
     } catch (error) {
       console.error('Failed to load reminder history:', error);
     } finally {
@@ -31,7 +89,20 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     loadHistory();
+    
+    // Auto-refresh every 5 seconds to show real-time updates
+    const interval = setInterval(() => {
+      loadHistory();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -115,9 +186,32 @@ export default function HistoryScreen() {
                   color={getEventColor(event.type)}
                 />
                 <View style={styles.historyDetails}>
-                  <Text variant="titleMedium" style={styles.historyTitle}>
-                    Reminder #{event.reminderId}
-                  </Text>
+                  <View style={styles.titleRow}>
+                    <Text variant="titleMedium" style={styles.historyTitle}>
+                      {event.reminderTitle}
+                    </Text>
+                    {event.isDeleted && (
+                      <Chip 
+                        mode="flat" 
+                        compact 
+                        style={styles.deletedChip}
+                        textStyle={styles.deletedChipText}
+                        icon="delete"
+                      >
+                        DELETED
+                      </Chip>
+                    )}
+                  </View>
+                  {event.reminderNotes && (
+                    <Text variant="bodySmall" style={styles.notesText}>
+                      {event.reminderNotes}
+                    </Text>
+                  )}
+                  {event.conditions && (
+                    <Text variant="bodySmall" style={styles.conditionsText}>
+                      {event.conditions}
+                    </Text>
+                  )}
                   <View style={styles.historyMeta}>
                     <Chip 
                       mode="outlined" 
@@ -131,17 +225,14 @@ export default function HistoryScreen() {
                       {formatEventTime(event.createdAt)}
                     </Text>
                   </View>
-                  {event.payload && (
-                    <Text variant="bodySmall" style={styles.payloadText}>
-                      {typeof event.payload === 'string' ? event.payload : JSON.stringify(event.payload)}
-                    </Text>
-                  )}
                 </View>
-                <IconButton
-                  icon="chevron-right"
-                  size={20}
-                  onPress={() => router.push(`/reminders/detail?id=${event.reminderId}`)}
-                />
+                {!event.isDeleted && (
+                  <IconButton
+                    icon="chevron-right"
+                    size={20}
+                    onPress={() => router.push(`/reminders/detail?id=${event.reminderId}`)}
+                  />
+                )}
               </Card.Content>
             </Card>
           ))
@@ -198,8 +289,32 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   historyTitle: {
     fontWeight: '500',
+  },
+  deletedChip: {
+    height: 24,
+    backgroundColor: '#f44336',
+  },
+  deletedChipText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  notesText: {
+    opacity: 0.7,
+    fontStyle: 'italic',
+  },
+  conditionsText: {
+    opacity: 0.6,
+    fontSize: 12,
+    color: '#666',
   },
   historyMeta: {
     flexDirection: 'row',
@@ -236,10 +351,5 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     opacity: 0.7,
-  },
-  payloadText: {
-    opacity: 0.6,
-    fontSize: 12,
-    fontStyle: 'italic',
   },
 });

@@ -155,7 +155,11 @@ class ReminderRepository {
 
   public async logEvent(reminderId: number, type: ReminderEvent['type'], payload?: any): Promise<ReminderEvent> {
     try {
-      return await this.dbService.createEvent(reminderId, type, payload);
+      // Fetch the reminder to get its title
+      const reminder = await this.getReminder(reminderId);
+      const reminderTitle = reminder?.title;
+      
+      return await this.dbService.createEvent(reminderId, type, payload, reminderTitle);
     } catch (error) {
       console.error('Failed to log event:', error);
       throw error;
