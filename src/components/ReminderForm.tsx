@@ -114,6 +114,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   const [repeat, setRepeat] = useState(initialValues?.rule?.options?.repeat || 'none');
   const [cooldownMins, setCooldownMins] = useState(initialValues?.rule?.options?.cooldownMins || 10);
   
+  // Alarm state
+  const [alarmEnabled, setAlarmEnabled] = useState(initialValues?.alarm?.enabled ?? false);
+  const [alarmVolume, setAlarmVolume] = useState(initialValues?.alarm?.volume ?? 1.0);
+  const [alarmVibrate, setAlarmVibrate] = useState(initialValues?.alarm?.vibrate ?? true);
+  const [alarmSnoozeInterval, setAlarmSnoozeInterval] = useState(initialValues?.alarm?.snoozeInterval ?? 10);
+  const [alarmMaxSnooze, setAlarmMaxSnooze] = useState(initialValues?.alarm?.maxSnoozeCount ?? 3);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -153,9 +160,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       if (preset === 'time') {
         setHasTimeCondition(true);
         setTitle('Remind me later');
+        // Default to alarm for "Remind Me Later"
+        setAlarmEnabled(true);
       } else if (preset === 'location') {
         setHasLocationTrigger(true);
         setTitle('Wake me there');
+        // Default to alarm for "Wake Me There"
+        setAlarmEnabled(true);
       } else if (preset === 'battery') {
         setHasBatteryCondition(true);
         setTitle('Battery reminder');
@@ -301,6 +312,14 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         notes: notes.trim() || undefined,
         rule: buildRule(),
         locationTrigger: reminderLocationTrigger,
+        alarm: alarmEnabled ? {
+          enabled: true,
+          volume: alarmVolume,
+          vibrate: alarmVibrate,
+          snoozeInterval: alarmSnoozeInterval,
+          maxSnoozeCount: alarmMaxSnooze,
+          wakeScreen: true,
+        } : undefined,
         enabled,
       };
 
@@ -1388,6 +1407,113 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         </Card>
       )}
 
+      {/* Alarm Settings */}
+      <Card style={styles.card} mode="outlined">
+        <Card.Content>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              {preset === 'location' ? '� Wake Me There' : preset === 'time' ? '⏰ Remind Me Later' : '�🔔 Alarm Settings'}
+            </Text>
+          </View>
+          
+          {/* Notification Type Selector */}
+          <View style={styles.notificationTypeSection}>
+            <Text variant="labelMedium" style={styles.notificationTypeLabel}>
+              Notification Type:
+            </Text>
+            <SegmentedButtons
+              value={alarmEnabled ? 'alarm' : 'normal'}
+              onValueChange={(value) => setAlarmEnabled(value === 'alarm')}
+              buttons={[
+                { 
+                  value: 'normal', 
+                  label: 'Normal',
+                  icon: 'bell-outline',
+                },
+                { 
+                  value: 'alarm', 
+                  label: 'Alarm',
+                  icon: 'alarm',
+                },
+              ]}
+              style={styles.segmentedButtons}
+            />
+            <Text variant="bodySmall" style={styles.notificationTypeHint}>
+              {alarmEnabled 
+                ? '🔊 Strong alarm with looping sound, vibration, and full-screen alert'
+                : '🔔 Standard notification - silent or single sound, appears in notification shade'
+              }
+            </Text>
+          </View>
+          
+          {alarmEnabled && (
+            <View>
+              <Text variant="bodySmall" style={styles.helperText}>
+                Enable a strong alarm that will wake you up even if the app is backgrounded or the screen is off.
+              </Text>
+
+              {/* Volume Slider */}
+              <View style={styles.sliderContainer}>
+                <Text variant="labelMedium">
+                  Alarm Volume: {Math.round(alarmVolume * 100)}%
+                </Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={1}
+                  value={alarmVolume}
+                  onValueChange={setAlarmVolume}
+                  step={0.1}
+                />
+              </View>
+
+              {/* Vibration Toggle */}
+              <View style={styles.optionRow}>
+                <Text variant="labelMedium">Vibrate</Text>
+                <Switch
+                  value={alarmVibrate}
+                  onValueChange={setAlarmVibrate}
+                />
+              </View>
+
+              {/* Snooze Interval */}
+              <View style={styles.sliderContainer}>
+                <Text variant="labelMedium">
+                  Snooze Duration: {alarmSnoozeInterval} minutes
+                </Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={30}
+                  value={alarmSnoozeInterval}
+                  onValueChange={setAlarmSnoozeInterval}
+                  step={1}
+                />
+              </View>
+
+              {/* Max Snooze Count */}
+              <View style={styles.sliderContainer}>
+                <Text variant="labelMedium">
+                  Max Snooze Count: {alarmMaxSnooze}
+                </Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={10}
+                  value={alarmMaxSnooze}
+                  onValueChange={setAlarmMaxSnooze}
+                  step={1}
+                />
+              </View>
+
+              <Text variant="bodySmall" style={styles.alarmWarningText}>
+                ⚠️ For best results, ensure the app has permission to run in the background and disable battery optimization for this app.
+              </Text>
+            </View>
+          )}
+        </Card.Content>
+      </Card>
+
       {/* Options */}
       <Card style={styles.card} mode="outlined">
         <Card.Content>
@@ -1718,5 +1844,46 @@ const styles = StyleSheet.create({
   locationActionButton: {
     flex: 1,
     borderRadius: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  helperText: {
+    color: '#666',
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alarmWarningText: {
+    color: '#FF9800',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+  },
+  notificationTypeSection: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+  },
+  notificationTypeLabel: {
+    marginBottom: 12,
+    fontWeight: '600',
+    color: '#333',
+  },
+  notificationTypeHint: {
+    marginTop: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    lineHeight: 18,
   },
 });

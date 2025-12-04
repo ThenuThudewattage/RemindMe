@@ -253,7 +253,7 @@ export default function HomeScreen() {
                 <Avatar.Icon size={40} icon="calendar-check" style={styles.metricAvatar} />
                 <View style={{ flex: 1 }}>
                   <Text variant="headlineSmall">{upcomingTodayCount}</Text>
-                  <Text variant="bodySmall" style={styles.muted}>Upcoming today</Text>
+                  <Text variant="bodySmall" style={styles.muted}>Upcoming {"\n"}today</Text>
                 </View>
               </Card.Content>
             </Card>
@@ -452,6 +452,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center', 
     justifyContent: 'center',
+    position: 'relative',
   },
   tileLabel: { 
     fontWeight: '500',

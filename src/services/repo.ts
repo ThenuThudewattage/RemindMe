@@ -32,6 +32,11 @@ class ReminderRepository {
     const notificationService = NotificationService.getInstance();
     await notificationService.initialize();
     
+    // Initialize alarm service
+    const AlarmService = (await import('./alarm')).default;
+    const alarmService = AlarmService.getInstance();
+    await alarmService.initialize();
+    
     // Set up notification action handler to avoid circular dependency
     notificationService.setNotificationActionHandler(async (reminderId: number, action: string, title: string) => {
       switch (action) {
@@ -51,6 +56,38 @@ class ReminderRepository {
         case 'OPEN':
         default:
           console.log('Opening reminder:', reminderId);
+          break;
+      }
+    });
+
+    // Set up alarm trigger handler
+    notificationService.setAlarmTriggerHandler(async (reminderId: number) => {
+      try {
+        const reminder = await this.getReminder(reminderId);
+        if (reminder && reminder.alarm?.enabled) {
+          await alarmService.triggerAlarm(reminder, 'time');
+          console.log(`Alarm triggered for reminder ${reminderId}`);
+        }
+      } catch (error) {
+        console.error('Failed to trigger alarm:', error);
+      }
+    });
+
+    // Set up alarm action handler
+    notificationService.setAlarmActionHandler(async (reminderId: number, action: string, title: string) => {
+      switch (action) {
+        case 'ALARM_SNOOZE':
+          await alarmService.snoozeAlarm(10);
+          console.log(`Alarm snoozed for 10 minutes`);
+          break;
+        case 'ALARM_DISMISS':
+          await alarmService.dismissAlarm();
+          await this.dismissReminder(reminderId);
+          console.log(`Alarm dismissed`);
+          break;
+        case 'ALARM_OPEN':
+        default:
+          console.log('Opening alarm screen:', reminderId);
           break;
       }
     });
