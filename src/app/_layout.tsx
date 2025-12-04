@@ -76,6 +76,14 @@ function InnerTabs() {
           href: null,
         }}
       />
+
+      {/* Hide alarm screen from tabs - it's a utility screen accessed when an alarm triggers */}
+      <Tabs.Screen
+        name="alarm"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

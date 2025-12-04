@@ -33,12 +33,23 @@ export interface LocationTrigger {
   enabled: boolean;
 }
 
+export interface AlarmSettings {
+  enabled: boolean; // Whether alarm is enabled for this reminder
+  soundUri?: string; // Custom alarm sound URI (optional, uses default if not set)
+  volume?: number; // Alarm volume (0-1, default 1.0)
+  vibrate?: boolean; // Whether to vibrate (default true)
+  snoozeInterval?: number; // Snooze duration in minutes (default 10)
+  maxSnoozeCount?: number; // Maximum number of snoozes allowed (default 3)
+  wakeScreen?: boolean; // Wake screen when alarm fires (default true)
+}
+
 export interface Reminder {
   id: number;
   title: string;
   notes?: string;
   rule: ReminderRule;
   locationTrigger?: LocationTrigger;
+  alarm?: AlarmSettings; // Alarm configuration
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -58,6 +69,7 @@ export interface CreateReminderInput {
   notes?: string;
   rule: ReminderRule;
   locationTrigger?: LocationTrigger;
+  alarm?: AlarmSettings; // Alarm configuration
   enabled?: boolean;
 }
 
@@ -124,5 +136,20 @@ export interface GeofenceStatus {
 export interface GeofenceEvent {
   reminderId: string;
   type: 'enter' | 'exit';
+  timestamp: number;
+}
+
+export interface AlarmState {
+  reminderId: number;
+  isRinging: boolean;
+  snoozeCount: number;
+  triggeredAt: number;
+  soundLoaded: boolean;
+}
+
+export interface AlarmTrigger {
+  reminderId: number;
+  reminderTitle: string;
+  triggeredBy: 'time' | 'location' | 'battery' | 'manual';
   timestamp: number;
 }
