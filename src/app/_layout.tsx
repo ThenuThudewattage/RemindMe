@@ -8,6 +8,7 @@ import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-
 import DatabaseService from '../services/db';
 import { BRAND } from '../theme';
 import { ThemeProvider, useAppTheme } from '../contexts/ThemeContext';
+import ContextEngine from '../services/contextEngine';
 
 function InnerTabs() {
   const { theme, isDark } = useAppTheme();
@@ -138,6 +139,34 @@ function RootTabsContent() {
       subscription.remove();
     };
   }, []);
+
+  // Foreground condition checker - checks reminders every 30 seconds
+  useEffect(() => {
+    if (!isDbReady) return;
+
+    console.log('🔄 Starting foreground condition checker');
+    const contextEngine = ContextEngine.getInstance();
+    
+    // Check immediately
+    contextEngine.checkAllConditions().catch(err => {
+      console.error('❌ Error in initial condition check:', err);
+    });
+
+    // Check every 30 seconds
+    const intervalId = setInterval(async () => {
+      console.log('⏰ Foreground check: Evaluating reminders...');
+      try {
+        await contextEngine.checkAllConditions();
+      } catch (error) {
+        console.error('❌ Error in foreground check:', error);
+      }
+    }, 30000);
+
+    return () => {
+      console.log('🛑 Stopping foreground condition checker');
+      clearInterval(intervalId);
+    };
+  }, [isDbReady]);
 
   if (!isDbReady) {
     return (

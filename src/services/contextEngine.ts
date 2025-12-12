@@ -43,8 +43,18 @@ export class ContextEngine {
   public async checkAllConditions(): Promise<void> {
     try {
       const activeReminders = await this.repo.getActiveReminders();
+      console.log(`📋 Found ${activeReminders.length} active reminder(s)`);
+      
+      if (activeReminders.length === 0) {
+        console.log('⚠️ No active reminders to check');
+        return;
+      }
       
       for (const reminder of activeReminders) {
+        console.log(`🔍 Checking: "${reminder.title}" (ID: ${reminder.id})`);
+        if (reminder.rule.time) {
+          console.log(`  📅 Raw time data from DB:`, JSON.stringify(reminder.rule.time));
+        }
         await this.evaluateReminder(reminder);
       }
     } catch (error) {
@@ -53,7 +63,7 @@ export class ContextEngine {
         console.log('All conditions check skipped - database not yet initialized');
         return;
       }
-      console.error('Error checking all conditions:', error);
+      console.error('❌ Error checking all conditions:', error);
     }
   }
 
@@ -113,6 +123,8 @@ export class ContextEngine {
 
   private async evaluateReminder(reminder: Reminder): Promise<void> {
     try {
+      console.log(`  Conditions: Time=${!!reminder.rule.time}, Location=${!!reminder.rule.location}, Battery=${!!reminder.rule.battery}`);
+      
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
@@ -136,11 +148,13 @@ export class ContextEngine {
         currentBatteryState
       );
 
+      console.log(`  Result: ${conditionsMet ? '✅ WILL TRIGGER' : '❌ Conditions not met'}`);
+
       if (conditionsMet) {
         await this.triggerReminder(reminder);
       }
     } catch (error) {
-      console.error('Error evaluating reminder:', error);
+      console.error('❌ Error evaluating reminder:', error);
     }
   }
 
@@ -335,20 +349,39 @@ export class ContextEngine {
   private checkTimeCondition(timeRule: NonNullable<Reminder['rule']['time']>): boolean {
     try {
       const now = new Date();
+      console.log(`    ⏰ Current time: ${now.toLocaleTimeString()}`);
       
       if (timeRule.start) {
         const startTime = new Date(timeRule.start);
-        if (now < startTime) return false;
+        console.log(`    ⏰ Start time: ${startTime.toLocaleTimeString()}`);
+        if (now < startTime) {
+          console.log(`    ❌ Too early (before start time)`);
+          return false;
+        }
       }
       
       if (timeRule.end) {
         const endTime = new Date(timeRule.end);
-        if (now > endTime) return false;
+        const startTime = timeRule.start ? new Date(timeRule.start) : endTime;
+        
+        // If start and end are the same (single-time reminder), add 5 minute buffer
+        if (startTime.getTime() === endTime.getTime()) {
+          endTime.setMinutes(endTime.getMinutes() + 5);
+          console.log(`    ⏰ End time (with 5min buffer): ${endTime.toLocaleTimeString()}`);
+        } else {
+          console.log(`    ⏰ End time: ${endTime.toLocaleTimeString()}`);
+        }
+        
+        if (now > endTime) {
+          console.log(`    ❌ Too late (after end time)`);
+          return false;
+        }
       }
       
+      console.log(`    ✅ Time condition met!`);
       return true;
     } catch (error) {
-      console.error('Error checking time condition:', error);
+      console.error('❌ Error checking time condition:', error);
       return false;
     }
   }
