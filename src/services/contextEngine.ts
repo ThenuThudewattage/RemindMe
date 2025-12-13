@@ -8,6 +8,8 @@ export class ContextEngine {
   private static instance: ContextEngine;
   private repo: ReminderRepository;
   private notificationService: NotificationService;
+  private recentlyTriggered: Map<number, number> = new Map(); // reminderId -> timestamp
+  private readonly TRIGGER_COOLDOWN_MS = 60000; // 1 minute cooldown between triggers
 
   private constructor() {
     this.repo = ReminderRepository.getInstance();
@@ -250,36 +252,61 @@ export class ContextEngine {
     batteryState: BatteryState | null
   ): Promise<boolean> {
     try {
+      console.log(`  📋 Checking all conditions for: "${reminder.title}"`);
+      
       // Check if reminder is in cooldown
       if (await this.isInCooldown(reminder)) {
+        console.log(`    ❌ In cooldown period`);
         return false;
       }
 
       // Check if it's quiet hours
       if (this.isQuietHours(reminder)) {
+        console.log(`    ❌ Quiet hours active`);
         return false;
       }
 
       // Check if reminder has expired
       if (this.isExpired(reminder)) {
+        console.log(`    ❌ Reminder expired`);
         return false;
       }
 
       // Check time condition
-      if (reminder.rule.time && !this.checkTimeCondition(reminder.rule.time)) {
-        return false;
+      if (reminder.rule.time) {
+        console.log(`    ⏰ Checking time condition...`);
+        if (!this.checkTimeCondition(reminder.rule.time)) {
+          return false;
+        }
+      } else {
+        console.log(`    ⏰ No time condition`);
       }
 
       // Check location condition
-      if (reminder.rule.location && !this.checkLocationCondition(reminder.rule.location, location)) {
-        return false;
+      if (reminder.rule.location) {
+        console.log(`    📍 Checking location condition...`);
+        if (!this.checkLocationCondition(reminder.rule.location, location)) {
+          console.log(`    ❌ Location condition not met`);
+          return false;
+        }
+        console.log(`    ✅ Location condition met`);
+      } else {
+        console.log(`    📍 No location condition`);
       }
 
       // Check battery condition
-      if (reminder.rule.battery && !this.checkBatteryCondition(reminder.rule.battery, batteryState)) {
-        return false;
+      if (reminder.rule.battery) {
+        console.log(`    🔋 Checking battery condition...`);
+        if (!this.checkBatteryCondition(reminder.rule.battery, batteryState)) {
+          console.log(`    ❌ Battery condition not met`);
+          return false;
+        }
+        console.log(`    ✅ Battery condition met`);
+      } else {
+        console.log(`    🔋 No battery condition`);
       }
 
+      console.log(`  ✅ ALL CONDITIONS MET!`);
       return true;
     } catch (error) {
       console.error('Error checking conditions:', error);
@@ -349,14 +376,20 @@ export class ContextEngine {
   private checkTimeCondition(timeRule: NonNullable<Reminder['rule']['time']>): boolean {
     try {
       const now = new Date();
-      console.log(`    ⏰ Current time: ${now.toLocaleTimeString()}`);
+      console.log(`    ⏰ Time Check Details:`);
+      console.log(`       Current time: ${now.toLocaleString()} (${now.getTime()})`);
       
       if (timeRule.start) {
         const startTime = new Date(timeRule.start);
-        console.log(`    ⏰ Start time: ${startTime.toLocaleTimeString()}`);
+        console.log(`       Start time raw: "${timeRule.start}"`);
+        console.log(`       Start time parsed: ${startTime.toLocaleString()} (${startTime.getTime()})`);
+        console.log(`       Difference: ${(now.getTime() - startTime.getTime()) / 1000} seconds`);
+        
         if (now < startTime) {
-          console.log(`    ❌ Too early (before start time)`);
+          console.log(`    ❌ Too early (current ${now.getTime()} < start ${startTime.getTime()})`);
           return false;
+        } else {
+          console.log(`    ✅ After start time`);
         }
       }
       
@@ -364,21 +397,25 @@ export class ContextEngine {
         const endTime = new Date(timeRule.end);
         const startTime = timeRule.start ? new Date(timeRule.start) : endTime;
         
+        console.log(`       End time raw: "${timeRule.end}"`);
+        console.log(`       End time parsed: ${endTime.toLocaleString()} (${endTime.getTime()})`);
+        
         // If start and end are the same (single-time reminder), add 5 minute buffer
         if (startTime.getTime() === endTime.getTime()) {
           endTime.setMinutes(endTime.getMinutes() + 5);
-          console.log(`    ⏰ End time (with 5min buffer): ${endTime.toLocaleTimeString()}`);
-        } else {
-          console.log(`    ⏰ End time: ${endTime.toLocaleTimeString()}`);
+          console.log(`       End time (with 5min buffer): ${endTime.toLocaleString()} (${endTime.getTime()})`);
+          console.log(`       Buffer difference: ${(endTime.getTime() - now.getTime()) / 1000} seconds`);
         }
         
         if (now > endTime) {
-          console.log(`    ❌ Too late (after end time)`);
+          console.log(`    ❌ Too late (current ${now.getTime()} > end ${endTime.getTime()})`);
           return false;
+        } else {
+          console.log(`    ✅ Before end time`);
         }
       }
       
-      console.log(`    ✅ Time condition met!`);
+      console.log(`    ✅ Time condition MET!`);
       return true;
     } catch (error) {
       console.error('❌ Error checking time condition:', error);
@@ -435,24 +472,49 @@ export class ContextEngine {
 
   private async triggerReminder(reminder: Reminder): Promise<void> {
     try {
-      console.log('Triggering reminder:', reminder.title);
+      // Check if this reminder was recently triggered (prevent duplicate triggers)
+      const lastTriggered = this.recentlyTriggered.get(reminder.id);
+      const now = Date.now();
       
-      // Show notification
-      await this.notificationService.showImmediateNotification(
-        reminder.id,
-        reminder.title,
-        reminder.notes
-      );
+      if (lastTriggered && (now - lastTriggered) < this.TRIGGER_COOLDOWN_MS) {
+        const remaining = Math.ceil((this.TRIGGER_COOLDOWN_MS - (now - lastTriggered)) / 1000);
+        console.log(`⏸️ Reminder ${reminder.id} in cooldown (${remaining}s remaining)`);
+        return;
+      }
+
+      console.log('🔔 Triggering reminder:', reminder.title);
+      
+      // Mark as triggered
+      this.recentlyTriggered.set(reminder.id, now);
+      
+      // Check if this is an alarm reminder
+      if (reminder.alarm?.enabled) {
+        console.log('⏰ Alarm enabled - triggering full alarm notification');
+        // Use AlarmService for alarm reminders
+        const AlarmService = (await import('./alarm')).default;
+        const alarmService = AlarmService.getInstance();
+        await alarmService.initialize();
+        await alarmService.triggerAlarm(reminder, 'time');
+      } else {
+        console.log('🔔 Regular notification - showing banner');
+        // Use NotificationService for regular reminders
+        await this.notificationService.showImmediateNotification(
+          reminder.id,
+          reminder.title,
+          reminder.notes
+        );
+      }
 
       // Log the trigger event
       await this.repo.logEvent(reminder.id, 'triggered', {
         timestamp: new Date().toISOString(),
         conditions: reminder.rule,
+        isAlarm: reminder.alarm?.enabled || false,
       });
 
-      console.log('Reminder triggered successfully:', reminder.id);
+      console.log('✅ Reminder triggered successfully:', reminder.id);
     } catch (error) {
-      console.error('Error triggering reminder:', error);
+      console.error('❌ Error triggering reminder:', error);
     }
   }
 }

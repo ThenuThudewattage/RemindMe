@@ -133,6 +133,15 @@ class DatabaseService {
         console.log('Migration completed: location_trigger_json column added');
       }
 
+      // Check if alarm_json column exists in reminders table
+      if (!reminderColumnNames.includes('alarm_json')) {
+        console.log('Adding alarm_json column to reminders table...');
+        await this.db.execAsync(`
+          ALTER TABLE reminders ADD COLUMN alarm_json TEXT;
+        `);
+        console.log('Migration completed: alarm_json column added');
+      }
+
       // Check if reminder_title column exists in events table
       const eventColumns = await this.db.getAllAsync(`PRAGMA table_info(events)`);
       const eventColumnNames = eventColumns.map((row: any) => row.name);
@@ -187,6 +196,7 @@ class DatabaseService {
         notes TEXT,
         rule_json TEXT NOT NULL,
         location_trigger_json TEXT,
+        alarm_json TEXT,
         enabled INTEGER DEFAULT 1,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -217,11 +227,14 @@ class DatabaseService {
     const now = new Date().toISOString();
     const ruleJson = JSON.stringify(input.rule);
     const locationTriggerJson = input.locationTrigger ? JSON.stringify(input.locationTrigger) : null;
+    const alarmJson = input.alarm ? JSON.stringify(input.alarm) : null;
+    
+    console.log('💾 Saving reminder with alarm settings:', alarmJson);
     
     const result = await this.db.runAsync(
-      `INSERT INTO reminders (title, notes, rule_json, location_trigger_json, enabled, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [input.title, input.notes || null, ruleJson, locationTriggerJson, input.enabled ? 1 : 0, now, now]
+      `INSERT INTO reminders (title, notes, rule_json, location_trigger_json, alarm_json, enabled, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [input.title, input.notes || null, ruleJson, locationTriggerJson, alarmJson, input.enabled ? 1 : 0, now, now]
     );
 
     const reminder = await this.getReminderById(result.lastInsertRowId!);
@@ -239,6 +252,7 @@ class DatabaseService {
       notes: string | null;
       rule_json: string;
       location_trigger_json: string | null;
+      alarm_json: string | null;
       enabled: number;
       created_at: string;
       updated_at: string;
@@ -246,16 +260,25 @@ class DatabaseService {
 
     if (!result) return null;
 
-    return {
+    const reminder = {
       id: result.id,
       title: result.title,
       notes: result.notes || undefined,
       rule: JSON.parse(result.rule_json),
       locationTrigger: result.location_trigger_json ? JSON.parse(result.location_trigger_json) : undefined,
+      alarm: result.alarm_json ? JSON.parse(result.alarm_json) : undefined,
       enabled: Boolean(result.enabled),
       createdAt: result.created_at,
       updatedAt: result.updated_at,
     };
+
+    if (reminder.alarm) {
+      console.log(`  ⏰ Alarm settings for reminder ${id}:`, JSON.stringify(reminder.alarm));
+    } else {
+      console.log(`  🔔 No alarm settings for reminder ${id} (regular notification)`);
+    }
+
+    return reminder;
   }
 
   public async getAllReminders(): Promise<Reminder[]> {
@@ -267,6 +290,7 @@ class DatabaseService {
       notes: string | null;
       rule_json: string;
       location_trigger_json: string | null;
+      alarm_json: string | null;
       enabled: number;
       created_at: string;
       updated_at: string;
@@ -278,6 +302,7 @@ class DatabaseService {
       notes: result.notes || undefined,
       rule: JSON.parse(result.rule_json),
       locationTrigger: result.location_trigger_json ? JSON.parse(result.location_trigger_json) : undefined,
+      alarm: result.alarm_json ? JSON.parse(result.alarm_json) : undefined,
       enabled: Boolean(result.enabled),
       createdAt: result.created_at,
       updatedAt: result.updated_at,
@@ -293,6 +318,7 @@ class DatabaseService {
       notes: string | null;
       rule_json: string;
       location_trigger_json: string | null;
+      alarm_json: string | null;
       enabled: number;
       created_at: string;
       updated_at: string;
@@ -304,6 +330,7 @@ class DatabaseService {
       notes: result.notes || undefined,
       rule: JSON.parse(result.rule_json),
       locationTrigger: result.location_trigger_json ? JSON.parse(result.location_trigger_json) : undefined,
+      alarm: result.alarm_json ? JSON.parse(result.alarm_json) : undefined,
       enabled: Boolean(result.enabled),
       createdAt: result.created_at,
       updatedAt: result.updated_at,
@@ -321,16 +348,22 @@ class DatabaseService {
     const locationTriggerJson = input.locationTrigger !== undefined 
       ? (input.locationTrigger ? JSON.stringify(input.locationTrigger) : null)
       : (existing.locationTrigger ? JSON.stringify(existing.locationTrigger) : null);
+    const alarmJson = input.alarm !== undefined
+      ? (input.alarm ? JSON.stringify(input.alarm) : null)
+      : (existing.alarm ? JSON.stringify(existing.alarm) : null);
+    
+    console.log('💾 Updating reminder with alarm settings:', alarmJson);
     
     await this.db.runAsync(
       `UPDATE reminders 
-       SET title = ?, notes = ?, rule_json = ?, location_trigger_json = ?, enabled = ?, updated_at = ?
+       SET title = ?, notes = ?, rule_json = ?, location_trigger_json = ?, alarm_json = ?, enabled = ?, updated_at = ?
        WHERE id = ?`,
       [
         input.title || existing.title,
         input.notes !== undefined ? (input.notes || null) : (existing.notes || null),
         ruleJson,
         locationTriggerJson,
+        alarmJson,
         input.enabled !== undefined ? (input.enabled ? 1 : 0) : (existing.enabled ? 1 : 0),
         now,
         input.id

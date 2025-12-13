@@ -5,6 +5,8 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, Platform, AppState } from 'react-native';
 import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import DatabaseService from '../services/db';
 import { BRAND } from '../theme';
 import { ThemeProvider, useAppTheme } from '../contexts/ThemeContext';
@@ -167,6 +169,30 @@ function RootTabsContent() {
       clearInterval(intervalId);
     };
   }, [isDbReady]);
+
+  // Handle notification responses (when user taps notification)
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      
+      // If it's an alarm notification, navigate to alarm screen
+      if (data.type === 'alarm' && data.reminderId) {
+        console.log('🔔 Alarm notification tapped, opening alarm screen');
+        router.push({
+          pathname: '/alarm',
+          params: {
+            reminderId: String(data.reminderId),
+            reminderTitle: String(data.reminderTitle || 'Alarm'),
+            triggeredBy: String(data.triggeredBy || 'time'),
+          },
+        });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   if (!isDbReady) {
     return (

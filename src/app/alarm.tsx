@@ -21,6 +21,7 @@ import {
   Dimensions,
   Platform,
   Vibration,
+  BackHandler,
 } from 'react-native';
 import {
   Text,
@@ -80,8 +81,16 @@ export default function AlarmScreen() {
    * Prevent back navigation while alarm is ringing
    */
   useEffect(() => {
-    // You can add back button handler here for Android
-    // to prevent dismissing the alarm accidentally
+    if (Platform.OS === 'android') {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        // Prevent back button from dismissing alarm
+        // User must explicitly snooze or dismiss
+        console.log('Back button pressed - alarm must be dismissed or snoozed');
+        return true; // Return true to prevent default back behavior
+      });
+
+      return () => backHandler.remove();
+    }
   }, []);
 
   const loadReminder = async () => {

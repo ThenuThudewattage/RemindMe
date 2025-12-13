@@ -64,6 +64,17 @@ class AlarmService {
 
       // Restore any active alarm state from storage
       await this.restoreAlarmState();
+      
+      // If there's a restored alarm but it's old (> 5 minutes), clear it
+      if (this.currentAlarm && this.currentAlarm.triggeredAt) {
+        const alarmAge = Date.now() - this.currentAlarm.triggeredAt;
+        const FIVE_MINUTES = 5 * 60 * 1000;
+        
+        if (alarmAge > FIVE_MINUTES) {
+          console.log('Clearing stale alarm state (older than 5 minutes)');
+          await this.dismissAlarm();
+        }
+      }
 
       this.isInitialized = true;
       console.log('✅ Alarm service initialized');
@@ -99,11 +110,19 @@ class AlarmService {
         return;
       }
 
-      // Check if already ringing
-      if (this.currentAlarm?.isRinging) {
-        console.log('Alarm already ringing, ignoring trigger');
+      // Check if already ringing FOR THIS SPECIFIC REMINDER
+      if (this.currentAlarm?.isRinging && this.currentAlarm.reminderId === reminder.id) {
+        console.log('Alarm already ringing for this reminder, ignoring duplicate trigger');
         return;
       }
+
+      // If a different alarm is ringing, dismiss it first
+      if (this.currentAlarm?.isRinging && this.currentAlarm.reminderId !== reminder.id) {
+        console.log('Different alarm ringing, dismissing it first');
+        await this.dismissAlarm();
+      }
+
+      console.log(`🔔 Triggering alarm for reminder ${reminder.id} (${triggeredBy})`);
 
       // Create alarm state
       const alarmState: AlarmState = {
@@ -143,7 +162,7 @@ class AlarmService {
         this.alarmTriggerHandler(trigger);
       }
 
-      console.log(`🔔 Alarm triggered for reminder ${reminder.id} (${triggeredBy})`);
+      console.log(`✅ Alarm successfully triggered and showing for reminder ${reminder.id}`);
     } catch (error) {
       console.error('Failed to trigger alarm:', error);
       throw error;
@@ -152,45 +171,23 @@ class AlarmService {
 
   /**
    * Play alarm sound with looping
-   * Uses default alarm sound or custom sound if specified
+   * Uses system notification sound and vibration
    */
   private async playAlarmSound(settings: AlarmSettings): Promise<void> {
     try {
-      // Unload any existing sound
-      if (this.alarmSound) {
-        await this.alarmSound.unloadAsync();
-        this.alarmSound = null;
-      }
-
-      // Load alarm sound
-      // For now, we'll use a system sound. In production, you'd load from assets
-      // const soundUri = settings.soundUri || require('../../assets/sounds/alarm.mp3');
+      console.log('🔊 Attempting to play alarm sound...');
       
-      // Create a simple beep pattern using Expo's Audio
-      // Note: You'll need to add an actual alarm sound file to assets/sounds/
-      const { sound } = await Audio.Sound.createAsync(
-        // Using require for local asset - you'll need to add the actual file
-        // For demo purposes, we'll use a notification sound
-        { uri: settings.soundUri || 'default' },
-        {
-          shouldPlay: true,
-          isLooping: true, // CRITICAL: Loop the alarm
-          volume: settings.volume ?? 1.0,
-        },
-        this.onPlaybackStatusUpdate
-      );
-
-      this.alarmSound = sound;
-
-      if (this.currentAlarm) {
-        this.currentAlarm.soundLoaded = true;
-        await this.saveAlarmState();
-      }
-
-      console.log('🔊 Alarm sound playing');
+      // For Expo Go, we'll rely on the notification sound + vibration
+      // The notification itself will play a sound
+      // We'll ensure continuous vibration for the alarm effect
+      
+      // Start continuous vibration immediately
+      this.startVibration();
+      
+      console.log('✅ Alarm audio/vibration started (notification sound + vibration)');
     } catch (error) {
-      console.error('Failed to play alarm sound:', error);
-      // Fallback: just vibrate
+      console.error('Failed to setup alarm audio:', error);
+      // Ensure vibration at minimum
       this.startVibration();
     }
   }
@@ -236,22 +233,41 @@ class AlarmService {
    */
   private async showAlarmNotification(reminder: Reminder): Promise<void> {
     try {
+      // Show a high-priority full-screen notification
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🔔 ALARM',
-          body: reminder.title,
+          title: '🔔 ALARM - ' + reminder.title,
+          body: reminder.notes || 'Tap to view alarm',
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
           categoryIdentifier: 'ALARM',
+          sticky: true, // Make notification persistent
           data: {
             reminderId: reminder.id,
+            reminderTitle: reminder.title,
             type: 'alarm',
+            triggeredBy: 'time',
           },
         },
         trigger: null, // Trigger immediately
       });
 
-      console.log('Alarm notification shown');
+      // Also navigate to alarm screen immediately if app is in foreground
+      try {
+        const { router } = await import('expo-router');
+        router.push({
+          pathname: '/alarm',
+          params: {
+            reminderId: reminder.id.toString(),
+            reminderTitle: reminder.title,
+            triggeredBy: 'time',
+          },
+        });
+      } catch (error) {
+        console.log('App may be in background, notification shown');
+      }
+
+      console.log('✅ Full-screen alarm notification shown');
     } catch (error) {
       console.error('Failed to show alarm notification:', error);
     }
