@@ -222,21 +222,29 @@ export default function HistoryScreen() {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" />
-            <Text variant="bodyMedium" style={styles.loadingText}>Loading history...</Text>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text variant="bodyMedium" style={[styles.loadingText, theme.dark && { color: '#B8B8B8' }]}>Loading history...</Text>
           </View>
         ) : events.length > 0 ? (
           Object.entries(groupEventsByDate(events)).map(([dateKey, dateEvents]) => (
             <View key={dateKey} style={styles.dateGroup}>
               <View style={styles.dateHeaderContainer}>
                 <View style={styles.dateHeaderLine} />
-                <Text variant="labelLarge" style={styles.dateHeader}>
+                <Text variant="labelLarge" style={[styles.dateHeader, theme.dark && { color: '#B8B8B8' }]}>
                   {getDateHeader(dateEvents[0].createdAt)}
                 </Text>
                 <View style={styles.dateHeaderLine} />
               </View>
               {dateEvents.map((event) => (
-                <Card key={event.id} mode="elevated" style={styles.historyCard} elevation={2}>
+                <Card key={event.id} mode="elevated" style={[
+                  styles.historyCard,
+                  !theme.dark && { backgroundColor: '#FFFFFF' },
+                  theme.dark && {
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                ]} elevation={2}>
                   <Card.Content style={styles.historyContent}>
                     <View style={[styles.eventIconContainer, { backgroundColor: `${getEventColor(event.type)}15` }]}>
                       <Avatar.Icon 
@@ -249,7 +257,7 @@ export default function HistoryScreen() {
                     <View style={styles.historyDetails}>
                       <View style={styles.titleRow}>
                         <View style={styles.titleContainer}>
-                          <Text variant="titleMedium" style={styles.historyTitle}>
+                          <Text variant="titleMedium" style={[styles.historyTitle, theme.dark && { color: '#FFFFFF' }]}>
                             {event.reminderTitle}
                           </Text>
                           <View style={styles.badgesRow}>
@@ -277,23 +285,23 @@ export default function HistoryScreen() {
                       </View>
                       {event.reminderNotes && (
                         <View style={styles.notesContainer}>
-                          <MaterialCommunityIcons name="note-text-outline" size={14} color="#666" />
-                          <Text variant="bodySmall" style={styles.notesText} numberOfLines={2}>
+                          <MaterialCommunityIcons name="note-text-outline" size={14} color={theme.dark ? '#B8B8B8' : '#666'} />
+                          <Text variant="bodySmall" style={[styles.notesText, theme.dark && { color: '#B8B8B8' }]} numberOfLines={2}>
                             {event.reminderNotes}
                           </Text>
                         </View>
                       )}
                       {event.conditions && (
                         <View style={styles.conditionsContainer}>
-                          <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={14} color="#888" />
-                          <Text variant="bodySmall" style={styles.conditionsText} numberOfLines={2}>
+                          <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={14} color={theme.dark ? '#B8B8B8' : '#888'} />
+                          <Text variant="bodySmall" style={[styles.conditionsText, theme.dark && { color: '#B8B8B8' }]} numberOfLines={2}>
                             {event.conditions}
                           </Text>
                         </View>
                       )}
                       <View style={styles.timestampRow}>
-                        <MaterialCommunityIcons name="clock-outline" size={14} color="#999" />
-                        <Text variant="bodySmall" style={styles.timeText}>
+                        <MaterialCommunityIcons name="clock-outline" size={14} color={theme.dark ? '#999' : '#999'} />
+                        <Text variant="bodySmall" style={[styles.timeText, theme.dark && { color: '#999' }]}>
                           {formatEventTime(event.createdAt)}
                         </Text>
                       </View>
@@ -382,6 +390,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.04)',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
   },
   historyContent: {
     flexDirection: 'row',

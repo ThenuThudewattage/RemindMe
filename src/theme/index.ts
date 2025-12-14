@@ -17,7 +17,7 @@ export const lightTheme: MD3Theme = {
     secondary: '#625B71',
     tertiary: '#7D5260',
     background: BRAND.surface,
-    surface: BRAND.surface,
+    surface: '#FFFFFF',
     surfaceVariant: BRAND.surfaceVariant,
     outline: '#79747E',
     error: '#B3261E',
@@ -32,12 +32,12 @@ export const darkTheme: MD3Theme = {
   roundness: 16,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: '#D0BCFF',        // Lighter purple for dark mode
-    secondary: '#CCC2DC',
+    primary: '#8B73C8',        // Darker purple for dark mode
+    secondary: '#B8A9D4',
     tertiary: '#EFB8C8',
-    background: '#1C1B1F',     // Dark background
-    surface: '#1C1B1F',
-    surfaceVariant: '#49454F',
+    background: '#0A0A0A',     // Deeper black background
+    surface: 'rgba(255, 255, 255, 0.05)',        // Glassmorphism surface
+    surfaceVariant: 'rgba(255, 255, 255, 0.08)', // Lighter glass
     outline: '#938F99',
     error: '#F2B8B5',
   },
