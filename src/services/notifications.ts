@@ -102,8 +102,9 @@ class NotificationService {
         };
       }
 
-      // For Android, also request battery optimization exemption
+      // For Android, create notification channels
       if (Platform.OS === 'android') {
+        // Regular reminders channel
         await Notifications.setNotificationChannelAsync('reminders', {
           name: 'Reminders',
           importance: Notifications.AndroidImportance.HIGH,
@@ -112,6 +113,19 @@ class NotificationService {
           sound: 'default',
           enableLights: true,
           enableVibrate: true,
+        });
+        
+        // Alarm channel with maximum priority for lock screen
+        await Notifications.setNotificationChannelAsync('alarms', {
+          name: 'Alarms',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 500, 500, 500],
+          lightColor: '#FF0000',
+          sound: 'default',
+          enableLights: true,
+          enableVibrate: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          bypassDnd: true,
         });
       }
 
@@ -320,6 +334,12 @@ class NotificationService {
         throw new Error('Notification permissions not granted');
       }
 
+      // If scheduledTime is provided, schedule for that time
+      // Otherwise show immediately
+      const trigger: Notifications.NotificationTriggerInput | null = scheduledTime 
+        ? { type: Notifications.SchedulableTriggerInputTypes.DATE, date: scheduledTime }
+        : null;
+      
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title,
@@ -328,11 +348,14 @@ class NotificationService {
           categoryIdentifier: 'REMINDER',
           sound: 'default',
         },
-        // Show immediately for now - can be enhanced later with proper scheduling
-        trigger: null,
+        trigger,
       });
 
-      console.log('Notification scheduled:', notificationId);
+      if (scheduledTime) {
+        console.log(`📅 Notification scheduled for ${scheduledTime.toLocaleString()}:`, notificationId);
+      } else {
+        console.log('🔔 Notification shown immediately:', notificationId);
+      }
       return notificationId;
     } catch (error) {
       console.error('Error showing reminder notification:', error);
@@ -419,6 +442,16 @@ class NotificationService {
       console.error('Error getting scheduled notifications:', error);
       return [];
     }
+  }
+
+  // Alias for getScheduledNotifications
+  public async getAllScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
+    return this.getScheduledNotifications();
+  }
+
+  // Alias for cancelNotification
+  public async cancelScheduledNotification(notificationId: string): Promise<void> {
+    return this.cancelNotification(notificationId);
   }
 
   public async showImmediateNotification(
