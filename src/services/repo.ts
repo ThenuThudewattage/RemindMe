@@ -259,6 +259,9 @@ class ReminderRepository {
   public async dismissReminder(id: number): Promise<void> {
     try {
       await this.logEvent(id, 'dismissed');
+      // Disable the reminder so it doesn't trigger again
+      await this.disableReminder(id);
+      console.log(`✅ Reminder ${id} dismissed and disabled`);
     } catch (error) {
       console.error('Failed to dismiss reminder:', error);
       throw error;

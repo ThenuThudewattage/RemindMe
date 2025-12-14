@@ -335,6 +335,8 @@ class AlarmService {
     }
 
     try {
+      const reminderId = this.currentAlarm.reminderId;
+      
       // Stop alarm
       await this.stopAlarmSound();
       await this.deactivateWakeLock();
@@ -343,6 +345,11 @@ class AlarmService {
       // Clear alarm state
       this.currentAlarm = null;
       await this.clearAlarmState();
+
+      // Dismiss and disable the reminder so it doesn't trigger again
+      const ReminderRepository = (await import('./repo')).default;
+      const repo = ReminderRepository.getInstance();
+      await repo.dismissReminder(reminderId);
 
       console.log('✅ Alarm dismissed');
     } catch (error) {
