@@ -21,6 +21,7 @@ import {
   Platform,
   Vibration,
   BackHandler,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -33,6 +34,8 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useAlarmManager } from '../hooks/useAlarmManager';
 import ReminderRepository from '../services/repo';
 import { Reminder } from '../types/reminder';
@@ -72,16 +75,30 @@ export default function AlarmScreen() {
   }, [reminderId]);
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  useEffect(() => {
-    _subscribe();
-    return () => _unsubscribe();
+    startPulseAnimation();
+    
+    // Activate keep awake to wake screen and prevent sleep on lock screen
+    activateKeepAwakeAsync('alarm-screen').catch(err => {
+      console.error('Failed to activate keep awake:', err);
+    });
+    
+    // Start continuous vibration pattern
+    const vibrationPattern = [0, 1000, 1000]; // Vibrate for 1s, pause 1s, repeat
+    Vibration.vibrate(vibrationPattern, true); // true = repeat
+    
+    // Set status bar to light content for better visibility
+    if (Platform.OS === 'android') {
+      StatusBar.setBarStyle('light-content');
+      StatusBar.setBackgroundColor('#C92A2A');
+    }
+    
+    return () => {
+      // Cleanup: deactivate keep awake and stop vibration
+      deactivateKeepAwake('alarm-screen').catch(err => {
+        console.error('Failed to deactivate keep awake:', err);
+      });
+      Vibration.cancel();
+    };
   }, []);
 
   useEffect(() => {
@@ -169,8 +186,9 @@ export default function AlarmScreen() {
 
   const handleSnooze = async (interval?: number) => {
     try {
-      Vibration.vibrate(100);
-      await snoozeAlarm(interval || 10);
+      Vibration.cancel(); // Stop alarm vibration
+      Vibration.vibrate(100); // Quick haptic feedback
+      await snoozeAlarm(interval || snoozeInterval);
       router.back();
     } catch (error) {
       console.error('Failed to snooze alarm:', error);
@@ -179,7 +197,8 @@ export default function AlarmScreen() {
 
   const handleDismiss = async () => {
     try {
-      Vibration.vibrate(100);
+      Vibration.cancel(); // Stop alarm vibration
+      Vibration.vibrate(100); // Quick haptic feedback
       await dismissAlarm();
       router.back();
     } catch (error) {
