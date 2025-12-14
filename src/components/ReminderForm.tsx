@@ -531,9 +531,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, theme.dark && { backgroundColor: '#0A0A0A' }]}>
       {/* Purple Top Bar */}
-      <View style={[styles.topBar, { paddingTop: insets.top + 16 }]}>
+      <View style={[
+        styles.topBar, 
+        { paddingTop: insets.top + 16 },
+        theme.dark && { backgroundColor: '#4a3969' },
+      ]}>
         <IconButton 
           icon="arrow-left" 
           iconColor="white"
@@ -546,9 +550,17 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       </View>
       
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Card style={styles.card} mode="outlined">
+        <Card style={[
+          styles.card,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]} mode="outlined">
           <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>Basic Information</Text>
+          <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>Basic Information</Text>
           
           <TextInput
             label="Title *"
@@ -574,8 +586,11 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             activeOutlineColor="#6B46C1"
           />
           
-          <View style={styles.switchContainer}>
-            <Text variant="bodyLarge">Enabled</Text>
+          <View style={[
+            styles.switchContainer,
+            theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+          ]}>
+            <Text variant="bodyLarge" style={theme.dark && { color: '#FFFFFF' }}>Enabled</Text>
             <Switch value={enabled} onValueChange={setEnabled} />
           </View>
         </Card.Content>
@@ -583,10 +598,21 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
 
       {/* Time Condition */}
       {shouldShowSection('time') && (
-        <Card style={styles.card} mode="outlined">
+        <Card style={[
+          styles.card,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]} mode="outlined">
           <Card.Content>
-            <View style={styles.conditionHeader}>
-              <Text variant="titleMedium">Time Condition</Text>
+            <View style={[
+              styles.conditionHeader,
+              theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}>
+              <Text variant="titleMedium" style={theme.dark && { color: '#FFFFFF' }}>Time Condition</Text>
               {preset !== 'time' && (
                 <Switch value={hasTimeCondition} onValueChange={setHasTimeCondition} />
               )}
@@ -596,8 +622,11 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             </View>
           
           {hasTimeCondition && (
-            <View style={styles.conditionContent}>
-              <Text variant="bodyMedium" style={styles.conditionDescription}>
+            <View style={[
+              styles.conditionContent,
+              theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
+            ]}>
+              <Text variant="bodyMedium" style={[styles.conditionDescription, theme.dark && { color: '#B8B8B8' }]}>
                 {timeConditionType === 'range' 
                   ? 'Reminder will only trigger between these times' 
                   : 'Reminder will trigger at this specific time'}
@@ -653,10 +682,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                   {/* Date Picker */}
                   {editingSpecificDate && (
                     <View style={styles.datePickerSection}>
-                      <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Date</Text>
-                      <View style={styles.datePickerContainer}>
+                      <Text variant="bodySmall" style={[styles.pickerSectionLabel, theme.dark && { color: '#FFFFFF' }]}>Edit Date</Text>
+                      <View style={[
+                        styles.datePickerContainer,
+                        theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                      ]}>
                         <View style={styles.datePicker}>
-                          <Text variant="bodySmall" style={styles.timePickerLabel}>Month</Text>
+                          <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Month</Text>
                           <ScrollView 
                             style={styles.dateScrollView}
                             showsVerticalScrollIndicator={false}
@@ -670,7 +702,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                   variant="titleMedium" 
                                   style={[
                                     styles.timeText,
-                                    tempSpecificMonth === i && styles.selectedTimeText
+                                    theme.dark && { color: '#B8B8B8' },
+                                    tempSpecificMonth === i && styles.selectedTimeText,
+                                    tempSpecificMonth === i && theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.3)', color: '#FFFFFF' }
                                   ]}
                                 >
                                   {getMonthName(i)}
@@ -681,7 +715,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                         </View>
                         
                         <View style={styles.datePicker}>
-                          <Text variant="bodySmall" style={styles.timePickerLabel}>Day</Text>
+                          <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Day</Text>
                           <ScrollView 
                             style={styles.dateScrollView}
                             showsVerticalScrollIndicator={false}
@@ -1289,10 +1323,21 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
 
       {/* Geofencing Trigger */}
       {shouldShowSection('location') && (
-        <Card style={styles.card} mode="outlined">
+        <Card style={[
+          styles.card,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]} mode="outlined">
           <Card.Content>
-            <View style={styles.conditionHeader}>
-              <Text variant="titleMedium">Location Trigger (Geofencing)</Text>
+            <View style={[
+              styles.conditionHeader,
+              theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}>
+              <Text variant="titleMedium" style={theme.dark && { color: '#FFFFFF' }}>Location Trigger (Geofencing)</Text>
               {preset !== 'location' && (
                 <Switch value={hasLocationTrigger} onValueChange={setHasLocationTrigger} />
               )}
@@ -1302,8 +1347,11 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             </View>
           
           {hasLocationTrigger && (
-            <View style={styles.conditionContent}>
-              <Text variant="bodyMedium" style={styles.conditionDescription}>
+            <View style={[
+              styles.conditionContent,
+              theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
+            ]}>
+              <Text variant="bodyMedium" style={[styles.conditionDescription, theme.dark && { color: '#B8B8B8' }]}>
                 Get notified when entering or leaving a specific location
               </Text>
               
@@ -1311,13 +1359,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 <View style={styles.locationTriggerInfo}>
                   <Card mode="contained" style={styles.locationCard}>
                     <Card.Content style={styles.locationCardContent}>
-                      <Text variant="titleSmall" numberOfLines={1}>
+                      <Text variant="titleSmall" numberOfLines={1} style={theme.dark && { color: '#FFFFFF' }}>
                         {locationTrigger.label || 'Selected Location'}
                       </Text>
-                      <Text variant="bodySmall" style={styles.locationDetails}>
+                      <Text variant="bodySmall" style={[styles.locationDetails, theme.dark && { color: '#B8B8B8' }]}>
                         {locationTrigger.latitude.toFixed(4)}, {locationTrigger.longitude.toFixed(4)}
                       </Text>
-                      <Text variant="bodySmall" style={styles.locationDetails}>
+                      <Text variant="bodySmall" style={[styles.locationDetails, theme.dark && { color: '#B8B8B8' }]}>
                         Radius: {locationTrigger.radius}m • Mode: {locationTrigger.mode}
                       </Text>
                     </Card.Content>
@@ -1359,10 +1407,21 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       )}
 
       {shouldShowSection('battery') && (
-        <Card style={styles.card} mode="outlined">
+        <Card style={[
+          styles.card,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]} mode="outlined">
           <Card.Content>
-            <View style={styles.conditionHeader}>
-              <Text variant="titleMedium">Battery Condition</Text>
+            <View style={[
+              styles.conditionHeader,
+              theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}>
+              <Text variant="titleMedium" style={theme.dark && { color: '#FFFFFF' }}>Battery Condition</Text>
               {preset !== 'battery' && (
                 <Switch value={hasBatteryCondition} onValueChange={setHasBatteryCondition} />
               )}
@@ -1372,8 +1431,11 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             </View>
           
           {hasBatteryCondition && (
-            <View style={styles.conditionContent}>
-              <Text variant="bodyMedium" style={styles.conditionDescription}>
+            <View style={[
+              styles.conditionContent,
+              theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
+            ]}>
+              <Text variant="bodyMedium" style={[styles.conditionDescription, theme.dark && { color: '#B8B8B8' }]}>
                 Reminder will trigger based on battery level
               </Text>
               
@@ -1426,17 +1488,31 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       )}
 
       {/* Alarm Settings */}
-      <Card style={styles.card} mode="outlined">
+      <Card style={[
+        styles.card,
+        !theme.dark && { backgroundColor: '#FFFFFF' },
+        theme.dark && {
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+        },
+      ]} mode="outlined">
         <Card.Content>
           <View style={styles.sectionHeader}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
               {preset === 'location' ? '� Wake Me There' : preset === 'time' ? '⏰ Remind Me Later' : '�🔔 Alarm Settings'}
             </Text>
           </View>
           
           {/* Notification Type Selector */}
-          <View style={styles.notificationTypeSection}>
-            <Text variant="labelMedium" style={styles.notificationTypeLabel}>
+          <View style={[
+            styles.notificationTypeSection,
+            theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+          ]}>
+            <Text variant="labelMedium" style={[
+              styles.notificationTypeLabel,
+              theme.dark && { color: '#FFFFFF' },
+            ]}>
               Notification Type:
             </Text>
             <SegmentedButtons
@@ -1456,7 +1532,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               ]}
               style={styles.segmentedButtons}
             />
-            <Text variant="bodySmall" style={styles.notificationTypeHint}>
+            <Text variant="bodySmall" style={[
+              styles.notificationTypeHint,
+              theme.dark && { color: '#B8B8B8' },
+            ]}>
               {alarmEnabled 
                 ? '🔊 Strong alarm with looping sound, vibration, and full-screen alert'
                 : '🔔 Standard notification - silent or single sound, appears in notification shade'
@@ -1524,7 +1603,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 />
               </View>
 
-              <Text variant="bodySmall" style={styles.alarmWarningText}>
+              <Text variant="bodySmall" style={[
+                styles.alarmWarningText,
+                theme.dark && { 
+                  backgroundColor: 'rgba(255, 152, 0, 0.15)',
+                  color: '#FFB74D',
+                },
+              ]}>
                 ⚠️ For best results, ensure the app has permission to run in the background and disable battery optimization for this app.
               </Text>
             </View>
@@ -1533,9 +1618,17 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       </Card>
 
       {/* Options */}
-      <Card style={styles.card} mode="outlined">
+      <Card style={[
+        styles.card,
+        !theme.dark && { backgroundColor: '#FFFFFF' },
+        theme.dark && {
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+        },
+      ]} mode="outlined">
         <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>Options</Text>
+          <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>Options</Text>
           
           <View style={styles.optionContainer}>
             <Text variant="labelMedium">Repeat</Text>
@@ -1568,7 +1661,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         </Card.Content>
       </Card>
 
-      <View style={styles.actions}>
+      <View style={[
+        styles.actions,
+        theme.dark && { backgroundColor: '#0A0A0A' },
+      ]}>
         <Button
           mode="contained"
           onPress={handleSubmit}

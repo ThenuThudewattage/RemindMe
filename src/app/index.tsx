@@ -209,7 +209,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Quick Actions Card */}
-        <Card mode="elevated" style={[
+        <Card mode="elevated" key={`quick-actions-${theme.dark}`} style={[
           styles.quickActionsCard,
           !theme.dark && { backgroundColor: '#FFFFFF' },
           theme.dark && {
@@ -232,18 +232,22 @@ export default function HomeScreen() {
               <Tile
                 color="#7C4DFF" icon="clock-outline" label="Remind me later"
                 onPress={() => router.push('/reminders/edit?preset=time')}
+                isDark={theme.dark}
               />
               <Tile
                 color="#7CB342" icon="map-marker" label="Wake me there"
                 onPress={() => router.push('/reminders/edit?preset=location')}
+                isDark={theme.dark}
               />
               <Tile
                 color="#FFA000" icon="battery" label="Battery"
                 onPress={() => router.push('/reminders/edit?preset=battery')}
+                isDark={theme.dark}
               />
               <Tile
                 color="#1E88E5" icon="checkbox-marked-outline" label="All"
                 onPress={() => router.push('/reminders/edit?preset=all')}
+                isDark={theme.dark}
               />
             </View>
             
@@ -268,13 +272,13 @@ export default function HomeScreen() {
         </Card>
 
       {/* Metric Cards */}
-        <View style={styles.metricsRow}>
+        <View style={styles.metricsRow} key={`metrics-${theme.dark}`}>
           <TouchableOpacity 
             onPress={() => router.push('/reminders/list?filter=today')} 
             style={styles.metricTouchable} 
             activeOpacity={0.7}
           >
-            <Card mode="elevated" style={[
+            <Card mode="elevated" key={`today-${theme.dark}`} style={[
               styles.metricCard,
               !theme.dark && { backgroundColor: '#FFFFFF' },
               theme.dark && {
@@ -284,7 +288,11 @@ export default function HomeScreen() {
               }
             ]}>
               <Card.Content style={styles.metricContent}>
-                <Avatar.Icon size={40} icon="calendar-check" style={[styles.metricAvatar, theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' }]} />
+                <Avatar.Icon size={40} icon="calendar-check" style={[
+                  styles.metricAvatar,
+                  theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' },
+                  !theme.dark && { backgroundColor: theme.colors.primaryContainer }
+                ]} />
                 <View style={{ flex: 1 }}>
                   <Text variant="headlineSmall" style={theme.dark && { color: '#FFFFFF' }}>{upcomingTodayCount}</Text>
                   <Text variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>Upcoming {"\n"}today</Text>
@@ -298,7 +306,7 @@ export default function HomeScreen() {
             style={styles.metricTouchable} 
             activeOpacity={0.7}
           >
-            <Card mode="elevated" style={[
+            <Card mode="elevated" key={`geofence-${theme.dark}`} style={[
               styles.metricCard,
               !theme.dark && { backgroundColor: '#FFFFFF' },
               theme.dark && {
@@ -308,7 +316,11 @@ export default function HomeScreen() {
               }
             ]}>
               <Card.Content style={styles.metricContent}>
-                <Avatar.Icon size={40} icon="map-marker-radius-outline" style={[styles.metricAvatar, theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' }]} />
+                <Avatar.Icon size={40} icon="map-marker-radius-outline" style={[
+                  styles.metricAvatar,
+                  theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' },
+                  !theme.dark && { backgroundColor: theme.colors.primaryContainer }
+                ]} />
                 <View style={{ flex: 1 }}>
                   <Text variant="headlineSmall" style={theme.dark && { color: '#FFFFFF' }}>{activeGeofencesCount}</Text>
                   <Text variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>Active geofences</Text>
@@ -318,8 +330,8 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.metricsRow}>
-          <Card mode="elevated" style={[
+        <View style={styles.metricsRow} key={`battery-row-${theme.dark}`}>
+          <Card mode="elevated" key={`battery-${theme.dark}`} style={[
             styles.metricCardWide,
             !theme.dark && { backgroundColor: '#FFFFFF' },
             theme.dark && {
@@ -332,7 +344,11 @@ export default function HomeScreen() {
               <Avatar.Icon 
                 size={40} 
                 icon={getBatteryIcon()} 
-                style={[styles.metricAvatar, theme.dark ? { backgroundColor: 'rgba(139, 115, 200, 0.15)' } : { backgroundColor: `${getBatteryColor()}1A` }]} 
+                style={[
+                  styles.metricAvatar,
+                  theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' },
+                  !theme.dark && { backgroundColor: `${getBatteryColor()}1A` }
+                ]} 
               />
               <View style={{ flex: 1 }}>
                 <Text variant="titleMedium" style={theme.dark && { color: '#FFFFFF' }}>
@@ -396,12 +412,9 @@ export default function HomeScreen() {
 
 
 /** small internal tile component to match the mock */
-function Tile({ color, icon, label, onPress }: {
-  color: string; icon: any; label: string; onPress: () => void;
+function Tile({ color, icon, label, onPress, isDark }: {
+  color: string; icon: any; label: string; onPress: () => void; isDark: boolean;
 }) {
-  const theme = useTheme();
-  const isDark = theme.dark;
-  
   // Convert hex color to rgba with opacity
   const hexToRgba = (hex: string, opacity: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
