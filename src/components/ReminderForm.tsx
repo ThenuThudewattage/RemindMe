@@ -173,11 +173,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       if (preset === 'time') {
         setHasTimeCondition(true);
         setTitle('Remind me later');
-        // Alarm is OFF by default - user can enable it if needed
+        // Default to alarm for "Remind Me Later"
+        setAlarmEnabled(true);
       } else if (preset === 'location') {
         setHasLocationTrigger(true);
         setTitle('Wake me there');
-        // Alarm is OFF by default - user can enable it if needed
+        // Default to alarm for "Wake Me There"
+        setAlarmEnabled(true);
       } else if (preset === 'battery') {
         setHasBatteryCondition(true);
         setTitle('Battery reminder');

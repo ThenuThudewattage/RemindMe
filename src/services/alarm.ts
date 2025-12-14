@@ -233,9 +233,7 @@ class AlarmService {
    */
   private async showAlarmNotification(reminder: Reminder): Promise<void> {
     try {
-      console.log('📢 Creating full-screen alarm notification for lock screen...');
-      
-      // Show a high-priority full-screen notification that works on lock screen
+      // Show a high-priority full-screen notification
       await Notifications.scheduleNotificationAsync({
         content: {
           title: '🔔 ALARM - ' + reminder.title,
@@ -244,7 +242,6 @@ class AlarmService {
           priority: Notifications.AndroidNotificationPriority.MAX,
           categoryIdentifier: 'ALARM',
           sticky: true, // Make notification persistent
-          autoDismiss: false, // Don't auto-dismiss
           data: {
             reminderId: reminder.id,
             reminderTitle: reminder.title,
@@ -253,7 +250,6 @@ class AlarmService {
           },
         },
         trigger: null, // Trigger immediately
-        identifier: `alarm-${reminder.id}-${Date.now()}`,
       });
 
       // Also navigate to alarm screen immediately if app is in foreground
