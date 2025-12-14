@@ -102,11 +102,6 @@ class ReminderRepository {
         await this.registerGeofence(reminder);
       }
       
-      // Schedule notification if time-based and no alarm (alarms are handled by context engine)
-      if (reminder.enabled && reminder.rule?.time && !reminder.alarm?.enabled) {
-        await this.scheduleTimeBasedNotification(reminder);
-      }
-      
       await this.logEvent(reminder.id, 'triggered', { action: 'created' });
       return reminder;
     } catch (error) {
@@ -150,14 +145,6 @@ class ReminderRepository {
       
       // Handle geofence registration/unregistration
       await this.handleGeofenceChanges(existingReminder, reminder);
-      
-      // Cancel existing scheduled notifications
-      await this.cancelScheduledNotification(reminder.id);
-      
-      // Schedule new notification if time-based and no alarm
-      if (reminder.enabled && reminder.rule?.time && !reminder.alarm?.enabled) {
-        await this.scheduleTimeBasedNotification(reminder);
-      }
       
       await this.logEvent(reminder.id, 'triggered', { action: 'updated' });
       return reminder;
@@ -412,52 +399,6 @@ class ReminderRepository {
       }
       // Register new geofence
       await this.registerGeofence(updatedReminder);
-    }
-  }
-
-  /**
-   * Schedule a notification for time-based reminders
-   * This allows notifications to work even when app is closed
-   */
-  private async scheduleTimeBasedNotification(reminder: Reminder): Promise<void> {
-    try {
-      if (!reminder.rule?.time?.start) return;
-      
-      const notificationService = NotificationService.getInstance();
-      const scheduledTime = new Date(reminder.rule.time.start);
-      const now = new Date();
-      
-      // Only schedule if the time is in the future
-      if (scheduledTime > now) {
-        await notificationService.showReminderNotification(
-          reminder.id,
-          reminder.title,
-          reminder.notes || 'Reminder triggered',
-          scheduledTime
-        );
-        console.log(`📅 Scheduled notification for reminder ${reminder.id} at ${scheduledTime.toLocaleString()}`);
-      }
-    } catch (error) {
-      console.error('Failed to schedule notification:', error);
-    }
-  }
-
-  /**
-   * Cancel scheduled notification for a reminder
-   */
-  private async cancelScheduledNotification(reminderId: number): Promise<void> {
-    try {
-      const notificationService = NotificationService.getInstance();
-      // Cancel all notifications for this reminder
-      const scheduled = await notificationService.getAllScheduledNotifications();
-      for (const notification of scheduled) {
-        if (notification.content.data?.reminderId === reminderId) {
-          await notificationService.cancelScheduledNotification(notification.identifier);
-          console.log(`🗑️ Cancelled scheduled notification: ${notification.identifier}`);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to cancel scheduled notification:', error);
     }
   }
 

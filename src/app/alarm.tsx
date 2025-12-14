@@ -2,14 +2,13 @@
  * ALARM SCREEN
  * 
  * Full-screen alarm interface shown when an alarm triggers
- * Provides snooze and dismiss actions
- * Prevents accidental dismissal with swipe gestures
+ * Features modern purple gradient with shake-to-snooze
  * 
  * Features:
- * - Full-screen takeover with high contrast
+ * - Full-screen purple gradient theme
+ * - Shake device to snooze
  * - Large dismiss and snooze buttons
- * - Shows reminder title and trigger reason
- * - Shake-to-snooze gesture support
+ * - Shows reminder title and notes
  * - Prevents back navigation during alarm
  */
 
@@ -22,25 +21,22 @@ import {
   Platform,
   Vibration,
   BackHandler,
-  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Text,
   Button,
-  IconButton,
   useTheme,
-  Surface,
   Portal,
   Dialog,
 } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useAlarmManager } from '../hooks/useAlarmManager';
 import ReminderRepository from '../services/repo';
 import { Reminder } from '../types/reminder';
+import { Accelerometer } from 'expo-sensors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,71 +52,86 @@ export default function AlarmScreen() {
   const [reminder, setReminder] = useState<Reminder | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
-  const [snoozeInterval, setSnoozeInterval] = useState(10);
 
   // Animation values
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const reminderId = parseInt(params.reminderId as string);
   const reminderTitle = params.reminderTitle as string;
   const triggeredBy = params.triggeredBy as string;
 
-  /**
-   * Load reminder details
-   */
+  // Shake detection
+  const [subscription, setSubscription] = useState<any>(null);
+  const lastShake = useRef(0);
+  const SHAKE_THRESHOLD = 2.5;
+  const SHAKE_COOLDOWN = 2000;
+
   useEffect(() => {
     loadReminder();
   }, [reminderId]);
 
-  /**
-   * Start pulsing animation
-   */
   useEffect(() => {
-    startPulseAnimation();
-    
-    // Activate keep awake to wake screen and prevent sleep on lock screen
-    activateKeepAwakeAsync('alarm-screen').catch(err => {
-      console.error('Failed to activate keep awake:', err);
-    });
-    
-    // Start continuous vibration pattern
-    const vibrationPattern = [0, 1000, 1000]; // Vibrate for 1s, pause 1s, repeat
-    Vibration.vibrate(vibrationPattern, true); // true = repeat
-    
-    // Set status bar to light content for better visibility
-    if (Platform.OS === 'android') {
-      StatusBar.setBarStyle('light-content');
-      StatusBar.setBackgroundColor('#C92A2A');
-    }
-    
-    return () => {
-      // Cleanup: deactivate keep awake and stop vibration
-      deactivateKeepAwake('alarm-screen').catch(err => {
-        console.error('Failed to deactivate keep awake:', err);
-      });
-      Vibration.cancel();
-    };
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
-  /**
-   * Prevent back navigation while alarm is ringing
-   */
+  useEffect(() => {
+    _subscribe();
+    return () => _unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === 'android') {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        // Prevent back button from dismissing alarm
-        // User must explicitly snooze or dismiss
         console.log('Back button pressed - alarm must be dismissed or snoozed');
-        return true; // Return true to prevent default back behavior
+        return true;
       });
 
       return () => backHandler.remove();
     }
   }, []);
 
+  const _subscribe = () => {
+    Accelerometer.setUpdateInterval(100);
+    const sub = Accelerometer.addListener(accelerometerData => {
+      const { x, y, z } = accelerometerData;
+      const acceleration = Math.sqrt(x * x + y * y + z * z);
+      
+      if (acceleration > SHAKE_THRESHOLD) {
+        const now = Date.now();
+        if (now - lastShake.current > SHAKE_COOLDOWN) {
+          lastShake.current = now;
+          _onShake();
+        }
+      }
+    });
+    setSubscription(sub);
+  };
+
+  const _unsubscribe = () => {
+    subscription && subscription.remove();
+    setSubscription(null);
+  };
+
+  const _onShake = () => {
+    console.log('Shake detected!');
+    Vibration.vibrate([0, 100, 100, 100]);
+    shakeAnimation();
+    handleSnooze();
+  };
+
   const loadReminder = async () => {
     try {
+      if (reminderId === 999 || isNaN(reminderId)) {
+        setReminder(null);
+        setLoading(false);
+        return;
+      }
+      
       const repo = ReminderRepository.getInstance();
       const reminderData = await repo.getReminder(reminderId);
       setReminder(reminderData);
@@ -131,29 +142,6 @@ export default function AlarmScreen() {
     }
   };
 
-  /**
-   * Start pulsing animation for alarm bell
-   */
-  const startPulseAnimation = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.3,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  };
-
-  /**
-   * Shake animation for feedback
-   */
   const shakeAnimation = () => {
     Animated.sequence([
       Animated.timing(shakeAnim, {
@@ -179,27 +167,19 @@ export default function AlarmScreen() {
     ]).start();
   };
 
-  /**
-   * Handle snooze button press
-   */
   const handleSnooze = async (interval?: number) => {
     try {
-      Vibration.cancel(); // Stop alarm vibration
-      Vibration.vibrate(100); // Quick haptic feedback
-      await snoozeAlarm(interval || snoozeInterval);
+      Vibration.vibrate(100);
+      await snoozeAlarm(interval || 10);
       router.back();
     } catch (error) {
       console.error('Failed to snooze alarm:', error);
     }
   };
 
-  /**
-   * Handle dismiss button press
-   */
   const handleDismiss = async () => {
     try {
-      Vibration.cancel(); // Stop alarm vibration
-      Vibration.vibrate(100); // Quick haptic feedback
+      Vibration.vibrate(100);
       await dismissAlarm();
       router.back();
     } catch (error) {
@@ -207,17 +187,11 @@ export default function AlarmScreen() {
     }
   };
 
-  /**
-   * Handle snooze options
-   */
   const handleShowSnoozeOptions = () => {
     shakeAnimation();
     setShowSnoozeOptions(true);
   };
 
-  /**
-   * Get trigger icon based on trigger type
-   */
   const getTriggerIcon = () => {
     switch (triggeredBy) {
       case 'location':
@@ -231,9 +205,6 @@ export default function AlarmScreen() {
     }
   };
 
-  /**
-   * Get trigger description
-   */
   const getTriggerDescription = () => {
     switch (triggeredBy) {
       case 'location':
@@ -249,58 +220,45 @@ export default function AlarmScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.error }]}>
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#6750A4', '#4a3969', '#1b093bff']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.container,
         { 
-          backgroundColor: theme.colors.error,
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
+          opacity: fadeAnim,
         }
       ]}
     >
-      {/* Alarm Icon */}
+      <LinearGradient
+        colors={['#6750A4', '#4a3969', '#1a1a1a']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <Animated.View
         style={[
-          styles.iconContainer,
+          styles.contentContainer,
           {
-            transform: [
-              { scale: pulseAnim },
-              { translateX: shakeAnim },
-            ],
+            transform: [{ translateX: shakeAnim }],
           },
         ]}
       >
-        <MaterialCommunityIcons
-          name="alarm-light"
-          size={120}
-          color="#FFFFFF"
-        />
-      </Animated.View>
+        <Text style={styles.title}>{reminderTitle}</Text>
 
-      {/* Alarm Title */}
-      <Text style={styles.title}>ALARM</Text>
-
-      {/* Reminder Info */}
-      <Surface style={styles.reminderCard}>
-        <View style={styles.reminderHeader}>
-          <MaterialCommunityIcons
-            name={getTriggerIcon()}
-            size={24}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.triggerText}>{getTriggerDescription()}</Text>
-        </View>
-        
-        <Text style={styles.reminderTitle}>{reminderTitle}</Text>
-        
         {reminder?.notes && (
           <Text style={styles.reminderNotes}>{reminder.notes}</Text>
         )}
@@ -310,54 +268,41 @@ export default function AlarmScreen() {
             Snoozed {currentAlarm.snoozeCount} time(s)
           </Text>
         )}
-      </Surface>
 
-      {/* Action Buttons */}
-      <View style={styles.actionContainer}>
-        {/* Snooze Button */}
-        <Button
-          mode="contained"
-          onPress={handleShowSnoozeOptions}
-          style={[styles.button, styles.snoozeButton]}
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
-          icon="alarm-snooze"
-        >
-          Snooze
-        </Button>
-
-        {/* Dismiss Button */}
-        <Button
-          mode="contained"
-          onPress={handleDismiss}
-          style={[styles.button, styles.dismissButton]}
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
-          icon="alarm-off"
-        >
-          Dismiss
-        </Button>
-      </View>
-
-      {/* Quick snooze options */}
-      <View style={styles.quickSnoozeContainer}>
-        <Text style={styles.quickSnoozeLabel}>Quick Snooze:</Text>
-        <View style={styles.quickSnoozeButtons}>
-          {[5, 10, 15, 30].map((minutes) => (
-            <Button
-              key={minutes}
-              mode="outlined"
-              onPress={() => handleSnooze(minutes)}
-              style={styles.quickSnoozeButton}
-              textColor="#FFFFFF"
-            >
-              {minutes}m
-            </Button>
-          ))}
+        <View style={{ flex: 1 }} />
+        
+        <View style={styles.shakeInstructionContainer}>
+          <MaterialCommunityIcons name="vibrate" size={20} color="#FFFFFF" />
+          <Text style={styles.shakeInstructionText}>Shake device to snooze</Text>
         </View>
-      </View>
 
-      {/* Snooze Options Dialog */}
+        <View style={styles.actionContainer}>
+          <Button
+            mode="contained"
+            onPress={handleShowSnoozeOptions}
+            style={[styles.button, styles.snoozeButton]}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="alarm-snooze"
+            buttonColor="rgba(255, 255, 255, 0.2)"
+          >
+            Snooze
+          </Button>
+
+          <Button
+            mode="contained"
+            onPress={handleDismiss}
+            style={[styles.button, styles.dismissButton]}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="check-circle-outline"
+            buttonColor="rgba(255, 255, 255, 0.4)"
+          >
+            Dismiss
+          </Button>
+        </View>
+      </Animated.View>
+
       <Portal>
         <Dialog
           visible={showSnoozeOptions}
@@ -387,7 +332,7 @@ export default function AlarmScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -396,98 +341,88 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    position: 'relative',
   },
   loadingText: {
     color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: '400',
   },
-  iconContainer: {
-    marginBottom: 30,
+  contentContainer: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
   },
   title: {
     fontSize: 48,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 30,
-    letterSpacing: 4,
-  },
-  reminderCard: {
-    padding: 20,
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 400,
-    marginBottom: 40,
-    elevation: 8,
-  },
-  reminderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  triggerText: {
-    fontSize: 14,
-    marginLeft: 8,
-    opacity: 0.7,
-  },
-  reminderTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 20,
+    letterSpacing: 1,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 10,
+    paddingHorizontal: 20,
+    marginTop: 40,
   },
   reminderNotes: {
-    fontSize: 16,
-    opacity: 0.7,
-    marginTop: 8,
+    fontSize: 19,
+    marginBottom: 20,
+    color: '#FFFFFF',
+    opacity: 0.95,
+    lineHeight: 28,
+    textAlign: 'center',
+    paddingHorizontal: 25,
+    fontWeight: '500',
   },
   snoozeCount: {
-    fontSize: 12,
-    marginTop: 12,
+    fontSize: 15,
+    marginBottom: 35,
     fontStyle: 'italic',
-    opacity: 0.6,
+    color: '#FFFFFF',
+    opacity: 0.85,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  shakeInstructionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    gap: 8,
+  },
+  shakeInstructionText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '500',
+    opacity: 0.9,
+    letterSpacing: 0.3,
   },
   actionContainer: {
     width: '100%',
     maxWidth: 400,
-    gap: 16,
+    gap: 18,
   },
   button: {
     width: '100%',
-    borderRadius: 12,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    overflow: 'hidden',
   },
   buttonContent: {
-    height: 64,
+    height: 68,
   },
   buttonLabel: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  snoozeButton: {
-    backgroundColor: '#FF9800',
-  },
-  dismissButton: {
-    backgroundColor: '#4CAF50',
-  },
-  quickSnoozeContainer: {
-    marginTop: 30,
-    width: '100%',
-    maxWidth: 400,
-  },
-  quickSnoozeLabel: {
+    fontSize: 21,
+    fontWeight: '800',
     color: '#FFFFFF',
-    fontSize: 14,
-    marginBottom: 12,
-    textAlign: 'center',
+    letterSpacing: 0.5,
   },
-  quickSnoozeButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  quickSnoozeButton: {
-    flex: 1,
-    borderColor: '#FFFFFF',
-  },
+  snoozeButton: {},
+  dismissButton: {},
   snoozeOptionsContainer: {
     marginTop: 16,
     gap: 12,

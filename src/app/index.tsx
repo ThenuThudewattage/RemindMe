@@ -238,6 +238,24 @@ export default function HomeScreen() {
                 onPress={() => router.push('/reminders/edit?preset=all')}
               />
             </View>
+            
+            {/* DEBUG: Temporary Alarm Screen Access
+            <Button
+              mode="outlined"
+              icon="alarm-light"
+              onPress={() => router.push({
+                pathname: '/alarm',
+                params: {
+                  reminderId: '999',
+                  reminderTitle: 'Test Alarm Screen',
+                  triggeredBy: 'manual',
+                },
+              })}
+              style={{ marginTop: 16, borderColor: BRAND.purple }}
+              textColor={BRAND.purple}
+            >
+              🚨 Test Alarm Screen (Debug)
+            </Button> */}
           </Card.Content>
         </Card>
 

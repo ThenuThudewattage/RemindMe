@@ -42,22 +42,19 @@ class BackgroundService {
     // Define the background fetch task
     TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
       try {
-        const now = new Date().toLocaleTimeString();
-        console.log(`🌙 Background fetch task executed at ${now}`);
+        console.log('Background fetch task executed');
         
         // Check battery conditions
         const batteryService = BatteryService.getInstance();
         await batteryService.getCurrentBatteryState();
-        console.log('🔋 Battery state checked in background');
         
         // Use context engine to check conditions
         const contextEngine = ContextEngine.getInstance();
         await contextEngine.checkAllConditions();
-        console.log('✅ Background condition check completed');
         
         return BackgroundFetch.BackgroundFetchResult.NewData;
       } catch (error) {
-        console.error('❌ Background fetch task error:', error);
+        console.error('Background fetch task error:', error);
         return BackgroundFetch.BackgroundFetchResult.Failed;
       }
     });
@@ -74,7 +71,7 @@ class BackgroundService {
       }
 
       await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-        minimumInterval: 60, // 60 seconds minimum interval
+        minimumInterval: 60 * 1000, // 1 minute (minimum on iOS is 15 seconds)
         stopOnTerminate: false, // Continue after app is terminated
         startOnBoot: true, // Start when device boots
       });
