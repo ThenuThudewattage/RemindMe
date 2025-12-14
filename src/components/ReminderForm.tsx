@@ -28,6 +28,19 @@ const generateUUID = () => {
   });
 };
 
+// Convert date to ISO string WITHOUT timezone conversion (keeps local time)
+const toLocalISOString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  // NO "Z" suffix - we want local time without timezone conversion
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
 interface ReminderFormProps {
   initialValues?: UpdateReminderInput;
   defaultCreateValues?: CreateReminderInput;
@@ -216,16 +229,21 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     // Time condition
     if (hasTimeCondition) {
       if (timeConditionType === 'specific') {
+        console.log('💾 Saving specific time:', specificDateTime.toLocaleString());
+        console.log('💾 As ISO:', toLocalISOString(specificDateTime));
         // For specific time, set start and end to the same datetime
         newRule.time = {
-          start: specificDateTime.toISOString(),
-          end: specificDateTime.toISOString(),
+          start: toLocalISOString(specificDateTime),
+          end: toLocalISOString(specificDateTime),
         };
       } else {
+        console.log('💾 Saving time range:');
+        console.log('  Start:', startDate.toLocaleString(), '→', toLocalISOString(startDate));
+        console.log('  End:', endDate.toLocaleString(), '→', toLocalISOString(endDate));
         // For time range
         newRule.time = {
-          start: startDate.toISOString(),
-          end: endDate.toISOString(),
+          start: toLocalISOString(startDate),
+          end: toLocalISOString(endDate),
         };
       }
     }
