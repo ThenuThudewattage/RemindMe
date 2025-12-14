@@ -15,7 +15,13 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent",
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "audio",
+          "processing"
+        ]
       }
     },
     "android": {
@@ -28,7 +34,19 @@
       "statusBar": {
         "backgroundColor": "#6750A4",
         "barStyle": "light-content"
-      }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

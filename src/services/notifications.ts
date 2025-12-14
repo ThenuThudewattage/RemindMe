@@ -45,6 +45,14 @@ class NotificationService {
     this.onNotificationAction = handler;
   }
 
+  public setAlarmTriggerHandler(handler: (reminderId: number) => Promise<void>): void {
+    this.onAlarmTrigger = handler;
+  }
+
+  public setAlarmActionHandler(handler: (reminderId: number, action: string, title: string) => Promise<void>): void {
+    this.onAlarmAction = handler;
+  }
+
   public async initialize(): Promise<void> {
     try {
       // Check if we're in Expo Go
@@ -142,8 +150,8 @@ class NotificationService {
 
   private async setupNotificationCategories(): Promise<void> {
     try {
-      // Define notification actions using Expo's API
-      const actions = [
+      // Define notification actions for regular reminders
+      const reminderActions = [
         {
           identifier: 'SNOOZE',
           buttonTitle: 'Snooze 10m',
@@ -170,10 +178,10 @@ class NotificationService {
         },
       ];
 
-      // Set the category for both iOS and Android
+      // Set the category for regular reminders
       await Notifications.setNotificationCategoryAsync(
         'REMINDER',
-        actions,
+        reminderActions,
         {
           // iOS specific options
           ...(Platform.OS === 'ios' && {
@@ -181,11 +189,51 @@ class NotificationService {
             intentIdentifiers: [],
             categorySummaryFormat: '%u reminder(s)',
           }),
-          // Android will use the actions as notification buttons
         }
       );
 
-      console.log(`✅ Notification categories set up for ${Platform.OS} with Snooze, Done, and Dismiss actions`);
+      // Define alarm actions (for full-screen alarm notifications)
+      const alarmActions = [
+        {
+          identifier: 'ALARM_SNOOZE',
+          buttonTitle: 'Snooze',
+          options: {
+            isDestructive: false,
+            isAuthenticationRequired: false,
+          },
+        },
+        {
+          identifier: 'ALARM_DISMISS',
+          buttonTitle: 'Dismiss',
+          options: {
+            isDestructive: false,
+            isAuthenticationRequired: false,
+          },
+        },
+        {
+          identifier: 'ALARM_OPEN',
+          buttonTitle: 'Open',
+          options: {
+            isDestructive: false,
+            isAuthenticationRequired: false,
+          },
+        },
+      ];
+
+      // Set the alarm category with high priority
+      await Notifications.setNotificationCategoryAsync(
+        'ALARM',
+        alarmActions,
+        {
+          ...(Platform.OS === 'ios' && {
+            previewPlaceholder: 'Alarm',
+            intentIdentifiers: [],
+            categorySummaryFormat: 'Alarm',
+          }),
+        }
+      );
+
+      console.log(`✅ Notification categories set up for ${Platform.OS}`);
     } catch (error) {
       console.error('Error setting up notification categories:', error);
     }
@@ -214,13 +262,36 @@ class NotificationService {
     try {
       const { actionIdentifier, notification } = response;
       const reminderId = Number(notification.request.content.data?.reminderId);
+      const notificationType = notification.request.content.data?.type;
+      const shouldTriggerAlarm = notification.request.content.data?.triggerAlarm;
 
       if (!reminderId) {
         console.error('No reminder ID found in notification data');
         return;
       }
 
-      // Use callback approach to avoid circular dependency
+      // Check if this notification should trigger an alarm
+      if (shouldTriggerAlarm && notificationType === 'alarm') {
+        // Import alarm service dynamically to avoid circular dependency
+        const AlarmService = (await import('./alarm')).default;
+        const alarmService = AlarmService.getInstance();
+        
+        // Load reminder and trigger alarm
+        // Note: We need to get the reminder from the repository
+        if (this.onAlarmTrigger) {
+          await this.onAlarmTrigger(reminderId);
+        }
+      }
+
+      // Handle alarm-specific actions
+      if (actionIdentifier.startsWith('ALARM_')) {
+        if (this.onAlarmAction) {
+          await this.onAlarmAction(reminderId, actionIdentifier, notification.request.content.title || 'Alarm');
+        }
+        return;
+      }
+
+      // Handle regular notification actions
       if (this.onNotificationAction) {
         await this.onNotificationAction(reminderId, actionIdentifier, notification.request.content.title || 'Reminder');
       }
@@ -230,6 +301,8 @@ class NotificationService {
   }
 
   private onNotificationAction?: (reminderId: number, action: string, title: string) => Promise<void>;
+  private onAlarmTrigger?: (reminderId: number) => Promise<void>;
+  private onAlarmAction?: (reminderId: number, action: string, title: string) => Promise<void>;
 
   /**
    * Schedule a LOCAL notification (works in Expo Go)

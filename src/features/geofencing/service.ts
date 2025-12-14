@@ -200,11 +200,21 @@ class GeofencingService {
       const locationLabel = locationTrigger.label || 'your zone';
       const action = eventType === 'enter' ? 'entered' : 'exited';
       
-      await this.notificationService.showReminderNotification(
-        reminder.id,
-        reminder.title,
-        `You ${action} ${locationLabel} (±${locationTrigger.radius}m)`
-      );
+      // Check if alarm is enabled for this reminder
+      if (reminder.alarm?.enabled) {
+        // Trigger alarm for location-based reminder
+        const AlarmService = (await import('../../services/alarm')).default;
+        const alarmService = AlarmService.getInstance();
+        await alarmService.triggerAlarm(reminder, 'location');
+        console.log(`Location-based alarm triggered for reminder ${reminder.id}`);
+      } else {
+        // Show regular notification
+        await this.notificationService.showReminderNotification(
+          reminder.id,
+          reminder.title,
+          `You ${action} ${locationLabel} (±${locationTrigger.radius}m)`
+        );
+      }
     } catch (error) {
       console.error('Failed to fire location notification:', error);
     }

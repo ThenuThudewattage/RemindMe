@@ -1,22 +1,29 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, Alert, Dimensions } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { View, StyleSheet, Alert, Dimensions, Keyboard, Platform, StatusBar } from 'react-native';
 import { 
   Text, 
-  Button, 
-  TextInput, 
+  Button,
+  TextInput,
   useTheme, 
-  Switch, 
   SegmentedButtons,
   Card,
   ActivityIndicator,
-  Snackbar
+  Snackbar,
+  IconButton,
+  Banner
 } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Circle, Region } from 'react-native-maps';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
+import NetInfo from '@react-native-community/netinfo';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { LocationTrigger } from '../../types/reminder';
 import GeofencingService from './service';
+
+// You'll need to add your Google Maps API key here
+// Get it from: https://console.cloud.google.com/apis/credentials
+const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -38,6 +45,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
   onCancel,
 }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [locationLoading, setLocationLoading] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
@@ -67,14 +75,38 @@ export const MapPicker: React.FC<MapPickerProps> = ({
   const [mode, setMode] = useState<'enter' | 'exit' | 'both'>(initialLocation?.mode || 'enter');
   const [label, setLabel] = useState(initialLocation?.label || '');
 
+  // Network state
+  const [isConnected, setIsConnected] = useState<boolean | null>(true);
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
 
-
-
+  // Refs
+  const mapRef = useRef<MapView>(null);
+  const searchRef = useRef<any>(null);
 
   const geofencingService = GeofencingService.getInstance();
 
   useEffect(() => {
     initializeLocation();
+    
+    // Check network connectivity
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+      if (!state.isConnected) {
+        setShowOfflineBanner(true);
+      }
+    });
+
+    // Initial check
+    NetInfo.fetch().then(state => {
+      setIsConnected(state.isConnected);
+      if (!state.isConnected) {
+        setShowOfflineBanner(true);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const initializeLocation = async () => {
@@ -180,6 +212,37 @@ export const MapPicker: React.FC<MapPickerProps> = ({
     }
   };
 
+  const handlePlaceSelect = (data: any, details: any) => {
+    if (details?.geometry?.location) {
+      const { lat, lng } = details.geometry.location;
+      
+      const newCoordinate = {
+        latitude: lat,
+        longitude: lng,
+      };
+
+      const newRegion = {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+
+      setMarkerCoordinate(newCoordinate);
+      setRegion(newRegion);
+      
+      // Animate to the new location
+      mapRef.current?.animateToRegion(newRegion, 500);
+      
+      // Set label from place name
+      const placeName = details.name || details.formatted_address || data.description;
+      setLabel(placeName);
+      
+      showSnackbar('Location selected');
+      Keyboard.dismiss();
+    }
+  };
+
   const onMapPress = (event: any) => {
     const coordinate = event.nativeEvent.coordinate;
     setMarkerCoordinate(coordinate);
@@ -261,16 +324,11 @@ export const MapPicker: React.FC<MapPickerProps> = ({
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.header}>
-        <Text variant="headlineSmall">Choose Location</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Long press to drop a pin, then drag to adjust
-        </Text>
-      </View>
-
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Map with Search Overlay */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
           region={region}
           onPress={onMapPress}
@@ -293,16 +351,84 @@ export const MapPicker: React.FC<MapPickerProps> = ({
           />
         </MapView>
 
-        <Button
+        {/* Google Places Autocomplete Search Overlay */}
+        <View style={[styles.searchOverlay, { top: Math.max(insets.top, 16) + 10 }]}>
+          <GooglePlacesAutocomplete
+            ref={searchRef}
+            placeholder="Search for a location..."
+            fetchDetails={true}
+            onPress={handlePlaceSelect}
+            query={{
+              key: GOOGLE_MAPS_API_KEY,
+              language: 'en',
+            }}
+            debounce={300}
+            minLength={2}
+            enablePoweredByContainer={false}
+            styles={{
+              container: styles.autocompleteContainer,
+              textInputContainer: styles.textInputContainer,
+              textInput: styles.textInput,
+              listView: styles.listView,
+              row: styles.row,
+              separator: styles.separator,
+              description: styles.description,
+              loader: styles.loader,
+            }}
+            textInputProps={{
+              placeholderTextColor: theme.colors.onSurfaceDisabled,
+              returnKeyType: 'search',
+              editable: isConnected !== false,
+            }}
+            renderLeftButton={() => (
+              <View style={styles.searchIconContainer}>
+                <IconButton icon="magnify" size={20} />
+              </View>
+            )}
+            renderRightButton={() => (
+              searchRef.current?.getAddressText() ? (
+                <IconButton 
+                  icon="close" 
+                  size={20}
+                  onPress={() => {
+                    searchRef.current?.setAddressText('');
+                    searchRef.current?.clear();
+                  }}
+                />
+              ) : null
+            )}
+          />
+          
+          {/* Offline Banner in Search Area */}
+          {isConnected === false && (
+            <View style={styles.offlineSearchBanner}>
+              <Text variant="bodySmall" style={styles.offlineText}>
+                ⚠️ No internet - Search unavailable. Long-press map to drop pin.
+              </Text>
+            </View>
+          )}
+          
+          {/* API Key Warning (Dev only) */}
+          {GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY' && (
+            <View style={styles.apiKeyWarning}>
+              <Text variant="bodySmall" style={styles.apiKeyText}>
+                ⚠️ Google Maps API Key required. See GOOGLE_MAPS_API_SETUP.md
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Current Location Button */}
+        <IconButton
+          icon="crosshairs-gps"
           mode="contained"
           onPress={getCurrentLocation}
-          loading={locationLoading}
-          style={styles.locationButton}
-          icon="crosshairs-gps"
-          compact
-        >
-          Current Location
-        </Button>
+          disabled={locationLoading}
+          style={[styles.locationButton, { top: Math.max(insets.top, 16) + 80 }]}
+          containerColor={theme.colors.surface}
+          iconColor={theme.colors.primary}
+          size={24}
+        />
       </View>
 
       <Card style={styles.settingsCard} mode="outlined">
@@ -374,7 +500,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
       >
         {snackbarMessage}
       </Snackbar>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -390,30 +516,110 @@ const styles = StyleSheet.create({
     marginTop: 16,
     opacity: 0.7,
   },
-  header: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  subtitle: {
-    marginTop: 4,
-    opacity: 0.7,
-  },
   mapContainer: {
     flex: 1,
     position: 'relative',
   },
   map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  // Google Places Autocomplete Overlay Styles
+  searchOverlay: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 1000,
+    elevation: 5, // Required for Android to show on top of map
+  },
+  autocompleteContainer: {
+    flex: 0,
+    width: '100%',
+  },
+  textInputContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    paddingHorizontal: 8,
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  textInput: {
+    height: 50,
+    fontSize: 16,
+    backgroundColor: 'transparent',
     flex: 1,
   },
+  searchIconContainer: {
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginRight: 4,
+  },
+  listView: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginTop: 4,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    maxHeight: 300,
+    zIndex: 1001, // Ensure list is above everything
+  },
+  row: {
+    padding: 13,
+    height: 60,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  separator: {
+    height: 0.5,
+    backgroundColor: '#c8c7cc',
+  },
+  description: {
+    fontSize: 14,
+  },
+  loader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'flex-end' as const,
+    height: 20,
+  },
+  offlineSearchBanner: {
+    backgroundColor: '#FFF3CD',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+    elevation: 4,
+  },
+  offlineText: {
+    color: '#856404',
+    textAlign: 'center' as const,
+  },
+  apiKeyWarning: {
+    backgroundColor: '#F8D7DA',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+    elevation: 4,
+  },
+  apiKeyText: {
+    color: '#721C24',
+    textAlign: 'center' as const,
+  },
   locationButton: {
-    position: 'absolute',
-    top: 16,
+    position: 'absolute' as const,
     right: 16,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+    zIndex: 900,
   },
   settingsCard: {
     margin: 16,
