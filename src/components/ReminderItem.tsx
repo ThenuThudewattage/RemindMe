@@ -69,13 +69,23 @@ export const ReminderItem: React.FC<ReminderItemProps> = ({
   };
 
   return (
-    <Card style={[styles.card, !reminder.enabled && styles.disabledCard]} mode="outlined">
+    <Card style={[
+      styles.card,
+      !reminder.enabled && styles.disabledCard,
+      !theme.dark && { backgroundColor: '#FFFFFF' },
+      theme.dark && {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+      },
+    ]} mode="outlined">
       <Card.Content>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text variant="titleMedium" style={[
               styles.title,
-              !reminder.enabled && styles.disabledText
+              !reminder.enabled && styles.disabledText,
+              theme.dark && { color: '#FFFFFF' }
             ]}>
               {reminder.title}
             </Text>
@@ -108,7 +118,11 @@ export const ReminderItem: React.FC<ReminderItemProps> = ({
         {reminder.notes && (
           <Text 
             variant="bodyMedium" 
-            style={[styles.notes, !reminder.enabled && styles.disabledText]}
+            style={[
+              styles.notes,
+              !reminder.enabled && styles.disabledText,
+              theme.dark && { color: '#B8B8B8' }
+            ]}
           >
             {reminder.notes}
           </Text>
@@ -116,13 +130,17 @@ export const ReminderItem: React.FC<ReminderItemProps> = ({
         
         <Text 
           variant="bodySmall" 
-          style={[styles.conditions, !reminder.enabled && styles.disabledText]}
+          style={[
+            styles.conditions,
+            !reminder.enabled && styles.disabledText,
+            theme.dark && { color: '#B8B8B8' }
+          ]}
         >
           {formatRuleDescription(reminder)}
         </Text>
         
         <View style={styles.footer}>
-          <Text variant="labelSmall" style={styles.timestamp}>
+          <Text variant="labelSmall" style={[styles.timestamp, theme.dark && { color: '#B8B8B8' }]}>
             Created {format(new Date(reminder.createdAt), 'MMM d, yyyy')}
           </Text>
           {reminder.rule.options?.repeat && reminder.rule.options.repeat !== 'none' && (

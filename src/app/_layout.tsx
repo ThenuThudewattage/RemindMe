@@ -5,6 +5,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, Platform, AppState } from 'react-native';
 import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import DatabaseService from '../services/db';
@@ -22,12 +23,13 @@ function InnerTabs() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
+          backgroundColor: isDark ? '#0A0A0A' : theme.colors.surface,
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom ? insets.bottom + 10 : 10,
           paddingTop: 6,
-          borderTopColor: theme.colors.outline,
-          borderTopWidth: 0.5,
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: { fontSize: 12 },
       }}
@@ -96,11 +98,22 @@ function RootTabsContent() {
   const { theme, isDark } = useAppTheme();
   const appState = useRef(AppState.currentState);
 
-  // Function to ensure status bar stays purple
-  const ensureStatusBar = () => {
-    setStatusBarStyle(isDark ? 'light' : 'light');
+  // Function to ensure status bar and navigation bar stay themed
+  const ensureStatusBar = async () => {
+    setStatusBarStyle('light');
     if (Platform.OS === 'android') {
-      setStatusBarBackgroundColor(BRAND.purple, false);
+      setStatusBarBackgroundColor(isDark ? '#4a3969' : BRAND.purple, false);
+      
+      // Set navigation bar color
+      try {
+        const navColor = isDark ? '#0A0A0A' : '#FFFFFF';
+        console.log('Setting navigation bar to:', navColor, 'isDark:', isDark);
+        await NavigationBar.setVisibilityAsync('visible');
+        await NavigationBar.setBackgroundColorAsync(navColor);
+        await NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+      } catch (error) {
+        console.log('Navigation bar styling error:', error);
+      }
     }
   };
 
@@ -141,6 +154,11 @@ function RootTabsContent() {
       subscription.remove();
     };
   }, []);
+
+  // Update navigation bar when theme changes
+  useEffect(() => {
+    ensureStatusBar();
+  }, [isDark]);
 
   // Foreground condition checker - checks reminders every 30 seconds
   useEffect(() => {
@@ -198,7 +216,7 @@ function RootTabsContent() {
     return (
       <SafeAreaProvider>
         <PaperProvider theme={theme}>
-          <StatusBar style="light" backgroundColor={BRAND.purple} />
+          <StatusBar style="light" backgroundColor={isDark ? '#4a3969' : BRAND.purple} />
           <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', backgroundColor: theme.colors.background }}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
@@ -210,7 +228,7 @@ function RootTabsContent() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <StatusBar style="light" backgroundColor={BRAND.purple} />
+        <StatusBar style="light" backgroundColor={isDark ? '#4a3969' : BRAND.purple} />
         <InnerTabs />
       </PaperProvider>
     </SafeAreaProvider>

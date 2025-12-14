@@ -209,14 +209,22 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Quick Actions Card */}
-        <Card mode="elevated" style={styles.quickActionsCard}>
+        <Card mode="elevated" key={`quick-actions-${theme.dark}`} style={[
+          styles.quickActionsCard,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          }
+        ]}>
           <Card.Content>
             <View style={styles.cardHeader}>
-              <Text variant="titleMedium" style={styles.cardTitle}>Quick Actions</Text>
+              <Text variant="titleMedium" style={[styles.cardTitle, theme.dark && { color: '#FFFFFF' }]}>Quick Actions</Text>
               {<IconButton
                 icon="plus"
                 size={20}
-                iconColor={BRAND.purple}
+                iconColor={theme.dark ? '#B8A9D4' : BRAND.purple}
                 onPress={goReminders}
               /> }
             </View>
@@ -224,18 +232,22 @@ export default function HomeScreen() {
               <Tile
                 color="#7C4DFF" icon="clock-outline" label="Remind me later"
                 onPress={() => router.push('/reminders/edit?preset=time')}
+                isDark={theme.dark}
               />
               <Tile
                 color="#7CB342" icon="map-marker" label="Wake me there"
                 onPress={() => router.push('/reminders/edit?preset=location')}
+                isDark={theme.dark}
               />
               <Tile
                 color="#FFA000" icon="battery" label="Battery"
                 onPress={() => router.push('/reminders/edit?preset=battery')}
+                isDark={theme.dark}
               />
               <Tile
                 color="#1E88E5" icon="checkbox-marked-outline" label="All"
                 onPress={() => router.push('/reminders/edit?preset=all')}
+                isDark={theme.dark}
               />
             </View>
             
@@ -260,18 +272,30 @@ export default function HomeScreen() {
         </Card>
 
       {/* Metric Cards */}
-        <View style={styles.metricsRow}>
+        <View style={styles.metricsRow} key={`metrics-${theme.dark}`}>
           <TouchableOpacity 
             onPress={() => router.push('/reminders/list?filter=today')} 
             style={styles.metricTouchable} 
             activeOpacity={0.7}
           >
-            <Card mode="elevated" style={styles.metricCard}>
+            <Card mode="elevated" key={`today-${theme.dark}`} style={[
+              styles.metricCard,
+              !theme.dark && { backgroundColor: '#FFFFFF' },
+              theme.dark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }
+            ]}>
               <Card.Content style={styles.metricContent}>
-                <Avatar.Icon size={40} icon="calendar-check" style={styles.metricAvatar} />
+                <Avatar.Icon size={40} icon="calendar-check" style={[
+                  styles.metricAvatar,
+                  theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' },
+                  !theme.dark && { backgroundColor: theme.colors.primaryContainer }
+                ]} />
                 <View style={{ flex: 1 }}>
-                  <Text variant="headlineSmall">{upcomingTodayCount}</Text>
-                  <Text variant="bodySmall" style={styles.muted}>Upcoming {"\n"}today</Text>
+                  <Text variant="headlineSmall" style={theme.dark && { color: '#FFFFFF' }}>{upcomingTodayCount}</Text>
+                  <Text variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>Upcoming {"\n"}today</Text>
                 </View>
               </Card.Content>
             </Card>
@@ -282,31 +306,55 @@ export default function HomeScreen() {
             style={styles.metricTouchable} 
             activeOpacity={0.7}
           >
-            <Card mode="elevated" style={styles.metricCard}>
+            <Card mode="elevated" key={`geofence-${theme.dark}`} style={[
+              styles.metricCard,
+              !theme.dark && { backgroundColor: '#FFFFFF' },
+              theme.dark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }
+            ]}>
               <Card.Content style={styles.metricContent}>
-                <Avatar.Icon size={40} icon="map-marker-radius-outline" style={styles.metricAvatar} />
+                <Avatar.Icon size={40} icon="map-marker-radius-outline" style={[
+                  styles.metricAvatar,
+                  theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' },
+                  !theme.dark && { backgroundColor: theme.colors.primaryContainer }
+                ]} />
                 <View style={{ flex: 1 }}>
-                  <Text variant="headlineSmall">{activeGeofencesCount}</Text>
-                  <Text variant="bodySmall" style={styles.muted}>Active geofences</Text>
+                  <Text variant="headlineSmall" style={theme.dark && { color: '#FFFFFF' }}>{activeGeofencesCount}</Text>
+                  <Text variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>Active geofences</Text>
                 </View>
               </Card.Content>
             </Card>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.metricsRow}>
-          <Card mode="elevated" style={styles.metricCardWide}>
+        <View style={styles.metricsRow} key={`battery-row-${theme.dark}`}>
+          <Card mode="elevated" key={`battery-${theme.dark}`} style={[
+            styles.metricCardWide,
+            !theme.dark && { backgroundColor: '#FFFFFF' },
+            theme.dark && {
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+            }
+          ]}>
             <Card.Content style={[styles.metricContent, { gap: 12 }]}>
               <Avatar.Icon 
                 size={40} 
                 icon={getBatteryIcon()} 
-                style={[styles.metricAvatar, { backgroundColor: `${getBatteryColor()}1A` }]} 
+                style={[
+                  styles.metricAvatar,
+                  theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.15)' },
+                  !theme.dark && { backgroundColor: `${getBatteryColor()}1A` }
+                ]} 
               />
               <View style={{ flex: 1 }}>
-                <Text variant="titleMedium">
+                <Text variant="titleMedium" style={theme.dark && { color: '#FFFFFF' }}>
                   Battery {batteryState ? `${batteryState.batteryLevel}%` : 'Loading...'}
                 </Text>
-                <Text variant="bodySmall" style={styles.muted}>
+                <Text variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>
                   {batteryState ? 
                     `${batteryState.batteryState === 'charging' ? 'Charging' : 
                       batteryState.batteryState === 'full' ? 'Full' : 
@@ -322,17 +370,25 @@ export default function HomeScreen() {
           </Card>
         </View>
 
-        <Card mode="outlined" style={{ marginTop: space(2) }}>
+        <Card mode="outlined" style={[
+          { marginTop: space(2) },
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          }
+        ]}>
           <Card.Content>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text variant="titleSmall">History</Text>
-              <Button mode="text" compact onPress={goHistory} textColor={BRAND.purple}>
+              <Text variant="titleSmall" style={theme.dark && { color: '#FFFFFF' }}>History</Text>
+              <Button mode="text" compact onPress={goHistory} textColor={theme.dark ? '#B8A9D4' : BRAND.purple}>
                 View All
               </Button>
             </View>
             {recentEvents.length > 0 ? (
               recentEvents.map((event, index) => (
-                <Text key={event.id || index} variant="bodySmall" style={styles.muted}>
+                <Text key={event.id || index} variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>
                   {getEventText(event)}
                 </Text>
               ))
@@ -356,16 +412,39 @@ export default function HomeScreen() {
 
 
 /** small internal tile component to match the mock */
-function Tile({ color, icon, label, onPress }: {
-  color: string; icon: any; label: string; onPress: () => void;
+function Tile({ color, icon, label, onPress, isDark }: {
+  color: string; icon: any; label: string; onPress: () => void; isDark: boolean;
 }) {
+  // Convert hex color to rgba with opacity
+  const hexToRgba = (hex: string, opacity: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+  
   return (
-    <Card mode="elevated" style={styles.tileCard} onPress={onPress}>
+    <Card 
+      mode="elevated" 
+      style={[
+        styles.tileCard,
+        !isDark && { backgroundColor: '#FFFFFF' },
+        isDark && {
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+        }
+      ]} 
+      onPress={onPress}
+    >
       <View style={styles.tileInner}>
-        <View style={[styles.tileIconWrap, { backgroundColor: `${color}1A` /* 10% tint */ }]}>
-          <MaterialCommunityIcons name={icon} size={30} color={color} />
+        <View style={[
+          styles.tileIconWrap, 
+          { backgroundColor: isDark ? 'rgba(139, 115, 200, 0.15)' : hexToRgba(color, 0.2) }
+        ]}>
+          <MaterialCommunityIcons name={icon} size={30} color={isDark ? '#B8A9D4' : color} />
         </View>
-        <Text variant="titleMedium" style={styles.tileLabel}>{label}</Text>
+        <Text variant="titleMedium" style={[styles.tileLabel, isDark && { color: '#FFFFFF' }]}>{label}</Text>
       </View>
     </Card>
   );
@@ -422,8 +501,21 @@ const styles = StyleSheet.create({
 
   metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   metricTouchable: { flex: 1 },
-  metricCard: { backgroundColor: 'white' },
-  metricCardWide: { flex: 1, backgroundColor: 'white' },
+  metricCard: {
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  metricCardWide: { 
+    flex: 1,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+  },
   metricContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricAvatar: { backgroundColor: 'rgba(103,80,164,0.12)' },
   muted: { opacity: 0.7 },
@@ -436,7 +528,11 @@ const styles = StyleSheet.create({
   quickActionsCard: {
     marginBottom: space(2),
     borderRadius: 12,
-    backgroundColor: 'white',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -457,7 +553,11 @@ const styles = StyleSheet.create({
   tileCard: {
     width: '48%',
     borderRadius: 12,
-    elevation: 1,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
   },
   tileInner: { 
     alignItems: 'center', 

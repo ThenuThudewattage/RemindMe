@@ -190,10 +190,18 @@ export default function ReminderDetailScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={[
+          styles.card,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]} mode="outlined">
           <Card.Content>
             <View style={styles.header}>
-              <Text variant="headlineSmall" style={styles.title}>
+              <Text variant="headlineSmall" style={[styles.title, theme.dark && { color: '#FFFFFF' }]}>
                 {reminder.title}
               </Text>
               <Chip 
@@ -205,16 +213,16 @@ export default function ReminderDetailScreen() {
             </View>
             
             {reminder.notes && (
-              <Text variant="bodyMedium" style={styles.notes}>
+              <Text variant="bodyMedium" style={[styles.notes, theme.dark && { color: '#B8B8B8' }]}>
                 {reminder.notes}
               </Text>
             )}
             
             <View style={styles.metadata}>
-              <Text variant="labelSmall" style={styles.metadataText}>
+              <Text variant="labelSmall" style={[styles.metadataText, theme.dark && { color: '#B8B8B8' }]}>
                 Created: {format(new Date(reminder.createdAt), 'MMM d, yyyy HH:mm')}
               </Text>
-              <Text variant="labelSmall" style={styles.metadataText}>
+              <Text variant="labelSmall" style={[styles.metadataText, theme.dark && { color: '#B8B8B8' }]}>
                 Updated: {format(new Date(reminder.updatedAt), 'MMM d, yyyy HH:mm')}
               </Text>
             </View>
@@ -222,20 +230,28 @@ export default function ReminderDetailScreen() {
         </Card>
 
         {/* Conditions Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={[
+          styles.card,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]} mode="outlined">
           <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
               Conditions
             </Text>
             
             {formatRuleDetails(reminder).length > 0 ? (
               formatRuleDetails(reminder).map((detail, index) => (
-                <Text key={index} variant="bodyMedium" style={styles.conditionItem}>
+                <Text key={index} variant="bodyMedium" style={[styles.detailText, theme.dark && { color: '#B8B8B8' }]}>
                   • {detail}
                 </Text>
               ))
             ) : (
-              <Text variant="bodyMedium" style={styles.noConditions}>
+              <Text variant="bodyMedium" style={[styles.noConditions, theme.dark && { color: '#B8B8B8' }]}>
                 No conditions set
               </Text>
             )}
@@ -243,9 +259,17 @@ export default function ReminderDetailScreen() {
         </Card>
 
         {/* History Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={[
+          styles.card,
+          !theme.dark && { backgroundColor: '#FFFFFF' },
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]} mode="outlined">
           <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
               History ({events.length} events)
             </Text>
             
@@ -268,7 +292,7 @@ export default function ReminderDetailScreen() {
                 </View>
               ))
             ) : (
-              <Text variant="bodyMedium" style={styles.noEvents}>
+              <Text variant="bodyMedium" style={[styles.noEvents, theme.dark && { color: '#B8B8B8' }]}>
                 No events recorded yet
               </Text>
             )}
@@ -277,13 +301,21 @@ export default function ReminderDetailScreen() {
 
         {/* Development Testing Section */}
         {reminder.locationTrigger?.enabled && __DEV__ && (
-          <Card style={styles.card} mode="outlined">
+          <Card style={[
+            styles.card,
+            !theme.dark && { backgroundColor: '#FFFFFF' },
+            theme.dark && {
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+            },
+          ]} mode="outlined">
             <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
+              <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
                 Testing (Development Only)
               </Text>
               
-              <Text variant="bodySmall" style={styles.testingNote}>
+              <Text variant="bodySmall" style={[styles.testingNote, theme.dark && { color: '#B8B8B8' }]}>
                 Simulate geofence events to test notifications
               </Text>
               
