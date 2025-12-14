@@ -22,6 +22,10 @@ import DatabaseService from '../services/db';
 import { Reminder, ReminderEvent } from '../types/reminder';
 import { BRAND, space } from '../theme';
 import { useAppTheme } from '../contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Slider from '@react-native-community/slider';
+
+const SNOOZE_COOLDOWN_KEY = '@remindme_snooze_cooldown';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -42,6 +46,7 @@ export default function SettingsScreen() {
   const [showDatabase, setShowDatabase] = useState(false);
   const [dbReminders, setDbReminders] = useState<Reminder[]>([]);
   const [dbEvents, setDbEvents] = useState<ReminderEvent[]>([]);
+  const [snoozeCooldown, setSnoozeCooldown] = useState(10); // Default 10 minutes
 
   const backgroundService = BackgroundService.getInstance();
   const repo = ReminderRepository.getInstance();
@@ -86,6 +91,12 @@ export default function SettingsScreen() {
       // Store data for database viewer
       setDbReminders(allReminders);
       setDbEvents(recentEvents);
+      
+      // Load snooze cooldown setting
+      const savedCooldown = await AsyncStorage.getItem(SNOOZE_COOLDOWN_KEY);
+      if (savedCooldown) {
+        setSnoozeCooldown(parseInt(savedCooldown, 10));
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
       
@@ -175,6 +186,15 @@ export default function SettingsScreen() {
 
   const handleOpenAppSettings = () => {
     Linking.openSettings();
+  };
+
+  const handleSnoozeCooldownChange = async (value: number) => {
+    setSnoozeCooldown(value);
+    try {
+      await AsyncStorage.setItem(SNOOZE_COOLDOWN_KEY, value.toString());
+    } catch (error) {
+      console.error('Failed to save snooze cooldown:', error);
+    }
   };
 
   const resetDatabase = async () => {
@@ -334,6 +354,45 @@ export default function SettingsScreen() {
                 Current: {isDark ? 'Dark' : 'Light'} Theme
               </Chip>
             </View>
+          </Card.Content>
+        </Card>
+
+        {/* Snooze Settings Card */}
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Snooze Settings
+            </Text>
+            
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              Default snooze cooldown time for all reminders
+            </Text>
+            
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderLabelRow}>
+                <Text variant="labelLarge">Snooze Cooldown</Text>
+                <Chip icon="clock-outline" mode="flat">{snoozeCooldown} minutes</Chip>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={5}
+                maximumValue={60}
+                value={snoozeCooldown}
+                onValueChange={handleSnoozeCooldownChange}
+                step={5}
+                minimumTrackTintColor={theme.colors.primary}
+                maximumTrackTintColor={theme.colors.surfaceVariant}
+                thumbTintColor={theme.colors.primary}
+              />
+              <View style={styles.sliderHints}>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>5 min</Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>60 min</Text>
+              </View>
+            </View>
+            
+            <Text variant="bodySmall" style={{ marginTop: 8, color: theme.colors.onSurfaceVariant, fontStyle: 'italic' }}>
+              This controls how long to wait before allowing another snooze on the same reminder.
+            </Text>
           </Card.Content>
         </Card>
 
@@ -615,5 +674,23 @@ const styles = StyleSheet.create({
   versionText: {
     opacity: 0.5,
     textAlign: 'center',
+  },
+  sliderContainer: {
+    marginVertical: 8,
+  },
+  sliderLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderHints: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
   },
 });

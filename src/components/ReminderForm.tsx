@@ -125,7 +125,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   
   // Options state
   const [repeat, setRepeat] = useState(initialValues?.rule?.options?.repeat || 'none');
-  const [cooldownMins, setCooldownMins] = useState(initialValues?.rule?.options?.cooldownMins || 10);
+  const cooldownMins = 10; // Fixed 10 minute snooze cooldown
   
   // Alarm state
   const [alarmEnabled, setAlarmEnabled] = useState(initialValues?.alarm?.enabled ?? false);
@@ -264,14 +264,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     }
 
     // Options
-    if (repeat !== 'none' || cooldownMins > 0) {
+    if (repeat !== 'none') {
       newRule.options = {};
-      if (repeat !== 'none') {
-        newRule.options.repeat = repeat as any;
-      }
-      if (cooldownMins > 0) {
-        newRule.options.cooldownMins = cooldownMins;
-      }
+      newRule.options.repeat = repeat as any;
+      newRule.options.cooldownMins = 10; // Always use 10 minute cooldown
+    } else {
+      // Even if no repeat, set cooldown for snooze functionality
+      newRule.options = { cooldownMins: 10 };
     }
 
     return newRule;
@@ -1642,20 +1641,6 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 { value: 'monthly', label: 'Monthly' },
               ]}
               style={styles.segmentedButtons}
-            />
-          </View>
-          
-          <View style={styles.sliderContainer}>
-            <Text variant="labelMedium">
-              Cooldown: {cooldownMins} minutes
-            </Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={60}
-              value={cooldownMins}
-              onValueChange={setCooldownMins}
-              step={5}
             />
           </View>
         </Card.Content>
