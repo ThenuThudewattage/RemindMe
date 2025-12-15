@@ -9,6 +9,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import DatabaseService from '../services/db';
+import BackgroundService from '../services/background';
 import { BRAND } from '../theme';
 import { ThemeProvider, useAppTheme } from '../contexts/ThemeContext';
 import ContextEngine from '../services/contextEngine';
@@ -124,6 +125,13 @@ function RootTabsContent() {
         const dbService = DatabaseService.getInstance();
         await dbService.initialize();
         console.log('Database initialized successfully');
+        
+        // Initialize background service after database is ready
+        console.log('Starting background service initialization...');
+        const backgroundService = BackgroundService.getInstance();
+        await backgroundService.initialize();
+        console.log('✅ Background service initialized successfully');
+        
         setIsDbReady(true);
       } catch (error) {
         console.error('Failed to initialize database:', error);
