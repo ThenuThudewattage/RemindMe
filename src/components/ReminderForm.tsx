@@ -131,8 +131,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   const [alarmEnabled, setAlarmEnabled] = useState(initialValues?.alarm?.enabled ?? false);
   const [alarmVolume, setAlarmVolume] = useState(initialValues?.alarm?.volume ?? 1.0);
   const [alarmVibrate, setAlarmVibrate] = useState(initialValues?.alarm?.vibrate ?? true);
-  const [alarmSnoozeInterval, setAlarmSnoozeInterval] = useState(initialValues?.alarm?.snoozeInterval ?? 10);
-  const [alarmMaxSnooze, setAlarmMaxSnooze] = useState(initialValues?.alarm?.maxSnoozeCount ?? 3);
+  const [alarmCooldown, setAlarmCooldown] = useState<number | undefined>(initialValues?.alarm?.cooldownMins);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -267,10 +266,6 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     if (repeat !== 'none') {
       newRule.options = {};
       newRule.options.repeat = repeat as any;
-      newRule.options.cooldownMins = 10; // Always use 10 minute cooldown
-    } else {
-      // Even if no repeat, set cooldown for snooze functionality
-      newRule.options = { cooldownMins: 10 };
     }
 
     return newRule;
@@ -333,8 +328,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           enabled: true,
           volume: alarmVolume,
           vibrate: alarmVibrate,
-          snoozeInterval: alarmSnoozeInterval,
-          maxSnoozeCount: alarmMaxSnooze,
+          ...(alarmCooldown !== undefined && { cooldownMins: alarmCooldown }),
           wakeScreen: true,
         } : undefined,
         enabled,
@@ -1572,34 +1566,22 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 />
               </View>
 
-              {/* Snooze Interval */}
+              {/* Alarm Cooldown */}
               <View style={styles.sliderContainer}>
                 <Text variant="labelMedium">
-                  Snooze Duration: {alarmSnoozeInterval} minutes
+                  Alarm Cooldown: {alarmCooldown} {alarmCooldown === 1 ? 'minute' : 'minutes'}
                 </Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={1}
-                  maximumValue={30}
-                  value={alarmSnoozeInterval}
-                  onValueChange={setAlarmSnoozeInterval}
+                  maximumValue={60}
+                  value={alarmCooldown}
+                  onValueChange={setAlarmCooldown}
                   step={1}
                 />
-              </View>
-
-              {/* Max Snooze Count */}
-              <View style={styles.sliderContainer}>
-                <Text variant="labelMedium">
-                  Max Snooze Count: {alarmMaxSnooze}
+                <Text variant="bodySmall" style={[styles.helperText, theme.dark && { color: '#B8B8B8' }]}>
+                  Prevents the same alarm from triggering repeatedly within this time period
                 </Text>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={1}
-                  maximumValue={10}
-                  value={alarmMaxSnooze}
-                  onValueChange={setAlarmMaxSnooze}
-                  step={1}
-                />
               </View>
 
               <Text variant="bodySmall" style={[
