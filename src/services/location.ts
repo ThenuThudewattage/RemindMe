@@ -102,7 +102,7 @@ class LocationService {
       }
 
       if (this.watchingLocation) {
-        console.log('Location tracking already started');
+
         return;
       }
 
@@ -121,7 +121,7 @@ class LocationService {
       );
 
       this.watchingLocation = true;
-      console.log('Location tracking started');
+
     } catch (error) {
       console.error('Error starting location tracking:', error);
       throw error;
@@ -135,7 +135,7 @@ class LocationService {
         this.locationSubscription = null;
       }
       this.watchingLocation = false;
-      console.log('Location tracking stopped');
+
     } catch (error) {
       console.error('Error stopping location tracking:', error);
     }
@@ -171,7 +171,7 @@ class LocationService {
         },
       });
 
-      console.log('Geofencing started with', regions.length, 'regions');
+
     } catch (error) {
       console.error('Error starting geofencing:', error);
       throw error;
@@ -181,7 +181,7 @@ class LocationService {
   public async stopGeofencing(): Promise<void> {
     try {
       await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-      console.log('Geofencing stopped');
+
     } catch (error) {
       console.error('Error stopping geofencing:', error);
     }
@@ -198,7 +198,7 @@ class LocationService {
         const { locations } = data as any;
         if (locations && locations.length > 0) {
           const location = locations[0];
-          console.log('Background location update:', location);
+
           
           // Trigger context engine to check conditions
           await this.handleLocationUpdate(location);

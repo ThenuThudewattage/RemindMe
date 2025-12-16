@@ -1,20 +1,3 @@
-/**
- * ALARM SERVICE
- * 
- * Manages alarm functionality for reminders:
- * - Plays looping alarm sounds
- * - Manages wake locks to keep device awake
- * - Handles alarm state (ringing, snoozed, dismissed)
- * - Works in background and when device is locked
- * 
- * Key features:
- * - Audio playback with expo-av
- * - Wake lock management with expo-keep-awake
- * - Full-screen alarm notifications
- * - Snooze and dismiss functionality
- * - Integrates with geofencing and time-based triggers
- */
-
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { Sound } from 'expo-av/build/Audio';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -77,9 +60,9 @@ class AlarmService {
       }
 
       this.isInitialized = true;
-      console.log('✅ Alarm service initialized');
+
     } catch (error) {
-      console.error('❌ Failed to initialize alarm service:', error);
+      console.error('Failed to initialize alarm service:', error);
       throw error;
     }
   }
@@ -122,7 +105,7 @@ class AlarmService {
         await this.dismissAlarm();
       }
 
-      console.log(`🔔 Triggering alarm for reminder ${reminder.id} (${triggeredBy})`);
+
 
       // Create alarm state
       const alarmState: AlarmState = {
@@ -132,6 +115,7 @@ class AlarmService {
         triggeredAt: Date.now(),
         soundLoaded: false,
       };
+      console.log(`Alarm triggered: reminder=${reminder.id}, triggeredBy=${triggeredBy}, title="${reminder.title}"`);
 
       this.currentAlarm = alarmState;
       await this.saveAlarmState();
@@ -162,7 +146,7 @@ class AlarmService {
         this.alarmTriggerHandler(trigger);
       }
 
-      console.log(`✅ Alarm successfully triggered and showing for reminder ${reminder.id}`);
+
     } catch (error) {
       console.error('Failed to trigger alarm:', error);
       throw error;
@@ -175,7 +159,7 @@ class AlarmService {
    */
   private async playAlarmSound(settings: AlarmSettings): Promise<void> {
     try {
-      console.log('🔊 Attempting to play alarm sound...');
+
       
       // For Expo Go, we'll rely on the notification sound + vibration
       // The notification itself will play a sound
@@ -184,7 +168,7 @@ class AlarmService {
       // Start continuous vibration immediately
       this.startVibration();
       
-      console.log('✅ Alarm audio/vibration started (notification sound + vibration)');
+
     } catch (error) {
       console.error('Failed to setup alarm audio:', error);
       // Ensure vibration at minimum
@@ -236,7 +220,7 @@ class AlarmService {
       // Show a high-priority full-screen notification
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🔔 ALARM - ' + reminder.title,
+          title: 'ALARM - ' + reminder.title,
           body: reminder.notes || 'Tap to view alarm',
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
@@ -267,7 +251,7 @@ class AlarmService {
         console.log('App may be in background, notification shown');
       }
 
-      console.log('✅ Full-screen alarm notification shown');
+
     } catch (error) {
       console.error('Failed to show alarm notification:', error);
     }
@@ -315,7 +299,7 @@ class AlarmService {
         },
       });
 
-      console.log(`⏰ Alarm snoozed for ${snoozeInterval} minutes`);
+
 
       // TODO: Schedule alarm to ring again after snooze interval
       // This would need to integrate with the reminder scheduling system
@@ -351,7 +335,7 @@ class AlarmService {
       const repo = ReminderRepository.getInstance();
       await repo.dismissReminder(reminderId);
 
-      console.log('✅ Alarm dismissed');
+
     } catch (error) {
       console.error('Failed to dismiss alarm:', error);
       throw error;
@@ -469,7 +453,7 @@ class AlarmService {
       // Schedule a notification that will trigger the alarm
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🔔 Alarm',
+          title: 'Alarm',
           body: 'Time to wake up!',
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,

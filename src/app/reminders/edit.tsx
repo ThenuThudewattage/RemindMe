@@ -8,7 +8,6 @@ import { ReminderForm } from '../../components/ReminderForm';
 import { CreateReminderInput, UpdateReminderInput } from '../../types/reminder';
 import ReminderRepository from '../../services/repo';
 
-// 👇 add the preset type we expect from dashboard quick actions
 type Preset = 'time' | 'location' | 'battery';
 
 export const href = null; // keep this screen OUT of the bottom tabs

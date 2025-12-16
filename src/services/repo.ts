@@ -47,19 +47,19 @@ class ReminderRepository {
           await this.snoozeReminder(reminderId, snoozeTime);
           // Schedule notification to show after snooze time
           await this.notificationService.scheduleSnoozeNotification(reminderId, title, snoozeTime);
-          console.log(`Reminder ${reminderId} snoozed for ${snoozeTime} minutes`);
+
           break;
         case 'DONE':
           await this.markReminderCompleted(reminderId);
-          console.log(`Reminder ${reminderId} marked as completed`);
+
           break;
         case 'DISMISS':
           await this.dismissReminder(reminderId);
-          console.log(`Reminder ${reminderId} dismissed`);
+
           break;
         case 'OPEN':
         default:
-          console.log('Opening reminder:', reminderId);
+
           break;
       }
     });
@@ -70,7 +70,7 @@ class ReminderRepository {
         const reminder = await this.getReminder(reminderId);
         if (reminder && reminder.alarm?.enabled) {
           await alarmService.triggerAlarm(reminder, 'time');
-          console.log(`Alarm triggered for reminder ${reminderId}`);
+
         }
       } catch (error) {
         console.error('Failed to trigger alarm:', error);
@@ -84,16 +84,16 @@ class ReminderRepository {
           const reminder = await this.getReminder(reminderId);
           const snoozeTime = reminder?.alarm?.snoozeInterval ?? 10;
           await alarmService.snoozeAlarm(snoozeTime);
-          console.log(`Alarm snoozed for ${snoozeTime} minutes`);
+
           break;
         case 'ALARM_DISMISS':
           await alarmService.dismissAlarm();
           await this.dismissReminder(reminderId);
-          console.log(`Alarm dismissed`);
+
           break;
         case 'ALARM_OPEN':
         default:
-          console.log('Opening alarm screen:', reminderId);
+
           break;
       }
     });
@@ -109,11 +109,12 @@ class ReminderRepository {
         if (startTime.getTime() === endTime.getTime()) {
           endTime.setMinutes(endTime.getMinutes() + 1);
           input.rule.time.end = endTime.toISOString();
-          console.log(`⏰ Extended end time by 1 minute for "at time" reminder: ${input.rule.time.end}`);
+          console.log(`Extended end time by 1 minute for "at time" reminder: ${input.rule.time.end}`);
         }
       }
       
       const reminder = await this.dbService.createReminder(input);
+      console.log(`Reminder created: id=${reminder.id}, title="${reminder.title}", enabled=${reminder.enabled}, hasLocation=${!!reminder.locationTrigger?.enabled}`);
       
       // Register geofence if location trigger is enabled
       if (reminder.locationTrigger?.enabled && reminder.enabled) {
@@ -165,13 +166,14 @@ class ReminderRepository {
         if (startTime.getTime() === endTime.getTime()) {
           endTime.setMinutes(endTime.getMinutes() + 1);
           input.rule.time.end = endTime.toISOString();
-          console.log(`⏰ Extended end time by 1 minute for "at time" reminder: ${input.rule.time.end}`);
+          console.log(`Extended end time by 1 minute for "at time" reminder: ${input.rule.time.end}`);
         }
       }
       
       // Get the existing reminder to check for geofence changes
       const existingReminder = await this.dbService.getReminderById(input.id);
       const reminder = await this.dbService.updateReminder(input);
+      console.log(`Reminder updated: id=${reminder.id}, title="${reminder.title}", enabled=${reminder.enabled}, hasLocation=${!!reminder.locationTrigger?.enabled}`);
       
       // Handle geofence registration/unregistration
       await this.handleGeofenceChanges(existingReminder, reminder);
@@ -195,7 +197,7 @@ class ReminderRepository {
       await this.logEvent(id, 'dismissed', { action: 'deleted' });
       await this.dbService.deleteReminder(id);
       
-      console.log(`🗑️ Reminder ${id} deleted`);
+
     } catch (error) {
       console.error('Failed to delete reminder:', error);
       throw error;
@@ -203,6 +205,7 @@ class ReminderRepository {
   }
 
   public async enableReminder(id: number): Promise<Reminder> {
+    console.log(`Enabling reminder: id=${id}`);
     try {
       const reminder = await this.dbService.updateReminder({ id, enabled: true });
       
@@ -221,12 +224,13 @@ class ReminderRepository {
 
   public async disableReminder(id: number): Promise<Reminder> {
     try {
+      console.log(`Disabling reminder: id=${id}`);
       const reminder = await this.dbService.updateReminder({ id, enabled: false });
       
       // Unregister geofence
       await this.unregisterGeofence(id.toString());
       
-      console.log(`✅ Reminder ${id} disabled in database (enabled=false)`);
+
       return reminder;
     } catch (error) {
       console.error('Failed to disable reminder:', error);
@@ -304,7 +308,7 @@ class ReminderRepository {
       // Disable the reminder so it doesn't trigger again
       await this.disableReminder(id);
       
-      console.log(`✅ Reminder ${id} dismissed and disabled`);
+
     } catch (error) {
       console.error('Failed to dismiss reminder:', error);
       throw error;
@@ -393,7 +397,7 @@ class ReminderRepository {
         mode: reminder.locationTrigger.mode,
       });
       
-      console.log(`Geofence registered for reminder ${reminder.id}`);
+
     } catch (error) {
       console.error(`Failed to register geofence for reminder ${reminder.id}:`, error);
       // Don't throw - allow reminder creation/update to succeed even if geofencing fails
@@ -403,7 +407,7 @@ class ReminderRepository {
   private async unregisterGeofence(reminderId: string): Promise<void> {
     try {
       await this.geofencingService.unregisterGeofence(reminderId);
-      console.log(`Geofence unregistered for reminder ${reminderId}`);
+
     } catch (error) {
       console.error(`Failed to unregister geofence for reminder ${reminderId}:`, error);
       // Don't throw - allow reminder deletion/update to succeed even if geofencing fails
@@ -465,7 +469,7 @@ class ReminderRepository {
           reminder.notes || 'Reminder triggered',
           scheduledTime
         );
-        console.log(`📅 Scheduled notification for reminder ${reminder.id} at ${scheduledTime.toLocaleString()}`);
+
       }
     } catch (error) {
       console.error('Failed to schedule notification:', error);
@@ -483,7 +487,7 @@ class ReminderRepository {
       for (const notification of scheduled) {
         if (notification.content.data?.reminderId === reminderId) {
           await notificationService.cancelNotification(notification.identifier);
-          console.log(`🗑️ Cancelled scheduled notification: ${notification.identifier}`);
+
         }
       }
     } catch (error) {
@@ -494,7 +498,7 @@ class ReminderRepository {
   public async restoreGeofences(): Promise<void> {
     try {
       await this.geofencingService.restoreAllGeofencesOnLaunch();
-      console.log('Geofences restored on app launch');
+
     } catch (error) {
       console.error('Failed to restore geofences:', error);
     }

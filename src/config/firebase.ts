@@ -5,8 +5,6 @@ import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 // Firebase configuration
-// These values come from your Firebase project settings
-// In Expo, EXPO_PUBLIC_ prefix makes variables available at runtime
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'YOUR_FIREBASE_API_KEY',
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'YOUR_PROJECT_ID.firebaseapp.com',
@@ -17,7 +15,7 @@ const firebaseConfig = {
 };
 
 // Debug: Log configuration (remove in production)
-console.log('🔥 Firebase Config:', {
+console.log('Firebase Config:', {
   apiKey: firebaseConfig.apiKey?.substring(0, 20) + '...',
   authDomain: firebaseConfig.authDomain,
   projectId: firebaseConfig.projectId,
@@ -48,10 +46,5 @@ if (getApps().length === 0) {
 // Initialize Cloud Functions
 functions = getFunctions(app);
 
-// Use emulator in development (optional)
-// Uncomment this if you want to test with local Firebase emulator
-// if (__DEV__) {
-//   connectFunctionsEmulator(functions, 'localhost', 5001);
-// }
 
 export { app, functions };

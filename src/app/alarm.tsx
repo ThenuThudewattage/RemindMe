@@ -1,17 +1,3 @@
-/**
- * ALARM SCREEN
- * 
- * Full-screen alarm interface shown when an alarm triggers
- * Features modern purple gradient with shake-to-snooze
- * 
- * Features:
- * - Full-screen purple gradient theme
- * - Shake device to snooze
- * - Large dismiss and snooze buttons
- * - Shows reminder title and notes
- * - Prevents back navigation during alarm
- */
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,

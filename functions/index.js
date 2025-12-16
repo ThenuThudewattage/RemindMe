@@ -3,24 +3,9 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const axios = require("axios");
 
-// Initialize Firebase Admin
 admin.initializeApp();
 
-/**
- * Google Places Autocomplete Cloud Function
- *
- * This function acts as a secure proxy between your mobile app and Google Places API.
- * Benefits:
- * - API key stored securely in Firebase (never exposed in client)
- * - Rate limiting per user
- * - Usage tracking and analytics
- * - Error handling and logging
- *
- * Set your Google Maps API Key:
- * firebase functions:config:set google.maps_key="YOUR_API_KEY"
- */
 exports.placesAutocomplete = onCall(async (request) => {
-  // 1. Authentication check
   if (!request.auth) {
     throw new HttpsError(
         "unauthenticated",
@@ -47,7 +32,6 @@ exports.placesAutocomplete = onCall(async (request) => {
   }
 
   try {
-    // 3. Rate limiting (10 requests per minute per user) - OPTIONAL
     try {
       const rateLimitRef = admin.firestore()
           .collection("rateLimits")
