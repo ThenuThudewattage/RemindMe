@@ -5,11 +5,13 @@ A React Native Expo app that delivers multi-condition, proximity-based reminders
 ## 🌟 Features
 
 - **Multi-Condition Reminders**: Set reminders based on location, time, and battery level
-- **Geofencing**: Location-based reminders with customizable radius
+- **Location Search**: Search and select locations with Google Places Autocomplete
+- **Geofencing**: Location-based reminders with customizable radius (50m-1000m)
 - **Background Processing**: Monitors conditions even when app is not active
 - **Local Notifications**: On-device notifications with actions (Complete, Snooze, Dismiss)
 - **SQLite Storage**: All data stored locally, no server required
 - **Battery Monitoring**: Reminders based on battery level and charging state
+- **Dark Mode**: Fully themed dark mode with glassmorphism effects
 - **Material Design UI**: Clean, modern interface using React Native Paper
 
 ## 📋 Requirements
@@ -35,13 +37,51 @@ npm install
 npx expo start
 ```
 
-### 2. Running on Device
+### 2. Configure Location Search (Two Options)
+
+#### Option A: Firebase Backend Proxy (Recommended - Most Secure)
+
+Set up a secure Firebase backend that handles Google Places API calls:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Follow the Firebase setup guide (15-20 minutes)
+# See FIREBASE_BACKEND_SETUP.md for step-by-step instructions
+```
+
+📖 **[Firebase Backend Setup Guide →](FIREBASE_BACKEND_SETUP.md)**
+
+**Benefits**:
+- ✅ API key never exposed in client app
+- ✅ Rate limiting (10 requests/min per user)
+- ✅ Usage analytics and monitoring
+- ✅ Free tier sufficient for most apps
+
+#### Option B: Direct API Key (Simple - Less Secure)
+
+Use direct Google Maps API with client-side key:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Follow the setup guide to get your free API key
+# See LOCATION_SEARCH_SETUP.md for detailed instructions
+```
+
+📖 **[Direct API Setup Guide →](LOCATION_SEARCH_SETUP.md)**
+
+**Note**: The app works without configuration, but location search will be disabled. You can still manually place pins on the map by tapping.
+
+### 3. Running on Device
 
 - **iOS**: Scan QR code with Camera app or use Expo Go
 - **Android**: Scan QR code with Expo Go app
 - **Physical Device Recommended**: Location and background features work best on real devices
 
-### 3. Required Permissions
+### 4. Required Permissions
 
 The app will request the following permissions on first launch:
 
@@ -67,10 +107,14 @@ The app will request the following permissions on first launch:
 - **Time range**: Between specific hours
 
 #### Location Conditions
+- **Location Search**: Search for places with Google Places Autocomplete
 - **Enter location**: Trigger when entering a geofenced area
 - **Exit location**: Trigger when leaving a geofenced area
-- **At location**: Trigger when at a specific place
-- **Radius**: Customizable from 50m to 5km
+- **Both**: Trigger on both enter and exit
+- **Radius**: Customizable from 50m to 1000m
+- **Manual Placement**: Tap map or drag marker to set location
+- **Current Location**: Use GPS to set current position
+- **Offline Support**: Manual pin placement works without internet
 
 #### Battery Conditions
 - **Battery level**: Above/below specific percentage
@@ -108,12 +152,17 @@ src/
 
 ### Environment Setup
 
-Create `.env` file in project root (optional):
+Create `.env` file in project root:
 
 ```bash
-EXPO_PUBLIC_API_URL=your-api-url  # If using external APIs
-EXPO_PUBLIC_DEBUG=true            # Enable debug logging
+# Google Maps API Key (required for location search)
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_api_key_here
+
+# Optional: Enable debug logging
+EXPO_PUBLIC_DEBUG=true
 ```
+
+**See [LOCATION_SEARCH_SETUP.md](LOCATION_SEARCH_SETUP.md) for detailed Google Maps API setup**
 
 ### Customization
 

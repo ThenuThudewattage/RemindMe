@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { View, StyleSheet, Alert, Dimensions, Keyboard, Platform, StatusBar } from 'react-native';
+import { View, StyleSheet, Alert, Dimensions, Keyboard, Platform, StatusBar, FlatList, TouchableOpacity } from 'react-native';
 import { 
   Text, 
   Button,
-  TextInput,
+  TextInput as PaperTextInput,
   useTheme, 
   SegmentedButtons,
   Card,
@@ -18,12 +18,21 @@ import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import NetInfo from '@react-native-community/netinfo';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import Constants from 'expo-constants';
 import { LocationTrigger } from '../../types/reminder';
 import GeofencingService from './service';
+import PlacesBackendService from '../../services/placesBackend';
 
-// You'll need to add your Google Maps API key here
-// Get it from: https://console.cloud.google.com/apis/credentials
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
+// Initialize backend service
+const placesBackend = PlacesBackendService.getInstance();
+
+// Determine if we should use backend proxy or direct API
+const USE_BACKEND_PROXY = placesBackend.isConfigured();
+
+// Fallback to direct API key if Firebase is not configured
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 
+                            process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 
+                            'YOUR_GOOGLE_MAPS_API_KEY';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -82,6 +91,22 @@ export const MapPicker: React.FC<MapPickerProps> = ({
   // Refs
   const mapRef = useRef<MapView>(null);
   const searchRef = useRef<any>(null);
+  
+  // Backend search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [predictions, setPredictions] = useState<any[]>([]);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Session token for Google Places API billing optimization
+  const [sessionToken] = useState(() => {
+    // Generate a unique session token (simple UUID v4)
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  });
 
   const geofencingService = GeofencingService.getInstance();
 
@@ -212,34 +237,126 @@ export const MapPicker: React.FC<MapPickerProps> = ({
     }
   };
 
-  const handlePlaceSelect = (data: any, details: any) => {
-    if (details?.geometry?.location) {
-      const { lat, lng } = details.geometry.location;
-      
-      const newCoordinate = {
-        latitude: lat,
-        longitude: lng,
-      };
+  const handleBackendSearchChange = (text: string) => {
+    setSearchQuery(text);
+    if (text.length < 2) {
+      setPredictions([]);
+      setShowPredictions(false);
+      return;
+    }
 
-      const newRegion = {
-        latitude: lat,
-        longitude: lng,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const response = await placesBackend.searchPlaces(text, sessionToken);
+        if (response.predictions) {
+          setPredictions(response.predictions);
+          setShowPredictions(true);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+      }
+    }, 500);
+  };
 
-      setMarkerCoordinate(newCoordinate);
-      setRegion(newRegion);
-      
-      // Animate to the new location
-      mapRef.current?.animateToRegion(newRegion, 500);
-      
-      // Set label from place name
-      const placeName = details.name || details.formatted_address || data.description;
-      setLabel(placeName);
-      
-      showSnackbar('Location selected');
-      Keyboard.dismiss();
+  const handleBackendPlaceSelect = async (placeId: string, description: string) => {
+    setSearchQuery(description);
+    setShowPredictions(false);
+    Keyboard.dismiss();
+    
+    try {
+      showSnackbar('Loading place details...');
+      const details = await placesBackend.getPlaceDetails(placeId, sessionToken);
+      if (details.result?.geometry?.location) {
+        const { lat, lng } = details.result.geometry.location;
+        const newRegion = {
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setRegion(newRegion);
+        setMarkerCoordinate({ latitude: lat, longitude: lng });
+        setLabel(details.result.name || description);
+        mapRef.current?.animateToRegion(newRegion, 500);
+        showSnackbar('Location selected');
+      }
+    } catch (error) {
+      console.error('Place details error:', error);
+      showSnackbar('Failed to load place details');
+    }
+  };
+
+  const handlePlaceSelect = async (data: any, details: any) => {
+    try {
+      // If using backend proxy and details not provided, fetch them
+      if (USE_BACKEND_PROXY && !details?.geometry?.location && data.place_id) {
+        showSnackbar('Loading place details...');
+        const placeDetails = await placesBackend.getPlaceDetails(data.place_id, sessionToken);
+        
+        if (placeDetails.status === 'OK' && placeDetails.result?.geometry?.location) {
+          const { lat, lng } = placeDetails.result.geometry.location;
+          
+          const newCoordinate = {
+            latitude: lat,
+            longitude: lng,
+          };
+
+          const newRegion = {
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          };
+
+          setMarkerCoordinate(newCoordinate);
+          setRegion(newRegion);
+          
+          // Animate to the new location
+          mapRef.current?.animateToRegion(newRegion, 500);
+          
+          // Set label from place name
+          const placeName = placeDetails.result.name || placeDetails.result.formatted_address || data.description;
+          setLabel(placeName);
+          
+          showSnackbar('Location selected');
+          Keyboard.dismiss();
+        } else {
+          showSnackbar('Failed to get place details');
+        }
+      } else if (details?.geometry?.location) {
+        // Direct API response with details
+        const { lat, lng } = details.geometry.location;
+        
+        const newCoordinate = {
+          latitude: lat,
+          longitude: lng,
+        };
+
+        const newRegion = {
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+
+        setMarkerCoordinate(newCoordinate);
+        setRegion(newRegion);
+        
+        // Animate to the new location
+        mapRef.current?.animateToRegion(newRegion, 500);
+        
+        // Set label from place name
+        const placeName = details.name || details.formatted_address || data.description;
+        setLabel(placeName);
+        
+        showSnackbar('Location selected');
+        Keyboard.dismiss();
+      }
+    } catch (error) {
+      console.error('Error selecting place:', error);
+      showSnackbar('Failed to select location. Please try again.');
     }
   };
 
@@ -351,53 +468,102 @@ export const MapPicker: React.FC<MapPickerProps> = ({
           />
         </MapView>
 
-        {/* Google Places Autocomplete Search Overlay */}
+        {/* Search Overlay */}
         <View style={[styles.searchOverlay, { top: Math.max(insets.top, 16) + 10 }]}>
-          <GooglePlacesAutocomplete
-            ref={searchRef}
-            placeholder="Search for a location..."
-            fetchDetails={true}
-            onPress={handlePlaceSelect}
-            query={{
-              key: GOOGLE_MAPS_API_KEY,
-              language: 'en',
-            }}
-            debounce={300}
-            minLength={2}
-            enablePoweredByContainer={false}
-            styles={{
-              container: styles.autocompleteContainer,
-              textInputContainer: styles.textInputContainer,
-              textInput: styles.textInput,
-              listView: styles.listView,
-              row: styles.row,
-              separator: styles.separator,
-              description: styles.description,
-              loader: styles.loader,
-            }}
-            textInputProps={{
-              placeholderTextColor: theme.colors.onSurfaceDisabled,
-              returnKeyType: 'search',
-              editable: isConnected !== false,
-            }}
-            renderLeftButton={() => (
-              <View style={styles.searchIconContainer}>
-                <IconButton icon="magnify" size={20} />
-              </View>
-            )}
-            renderRightButton={() => (
-              searchRef.current?.getAddressText() ? (
-                <IconButton 
-                  icon="close" 
-                  size={20}
-                  onPress={() => {
-                    searchRef.current?.setAddressText('');
-                    searchRef.current?.clear();
-                  }}
+          {USE_BACKEND_PROXY ? (
+            <View style={styles.autocompleteContainer}>
+              <View style={styles.textInputContainer}>
+                <View style={styles.searchIconContainer}>
+                  <IconButton icon="magnify" size={20} />
+                </View>
+                <PaperTextInput
+                  value={searchQuery}
+                  onChangeText={handleBackendSearchChange}
+                  placeholder="Search for a location..."
+                  placeholderTextColor={theme.colors.onSurfaceDisabled}
+                  style={styles.textInput}
+                  underlineColor="transparent"
+                  activeUnderlineColor="transparent"
+                  dense
                 />
-              ) : null
-            )}
-          />
+                {searchQuery.length > 0 && (
+                  <IconButton 
+                    icon="close" 
+                    size={20} 
+                    onPress={() => {
+                      setSearchQuery('');
+                      setPredictions([]);
+                      setShowPredictions(false);
+                    }}
+                  />
+                )}
+              </View>
+              {showPredictions && predictions.length > 0 && (
+                <View style={styles.listView}>
+                  <FlatList
+                    data={predictions}
+                    keyExtractor={(item) => item.place_id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity 
+                        style={styles.row}
+                        onPress={() => handleBackendPlaceSelect(item.place_id, item.description)}
+                      >
+                        <Text numberOfLines={1} style={styles.description}>{item.description}</Text>
+                      </TouchableOpacity>
+                    )}
+                    ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    keyboardShouldPersistTaps="always"
+                  />
+                </View>
+              )}
+            </View>
+          ) : (
+            <GooglePlacesAutocomplete
+              ref={searchRef}
+              placeholder="Search for a location..."
+              fetchDetails={true}
+              onPress={handlePlaceSelect}
+              query={{
+                key: GOOGLE_MAPS_API_KEY,
+                language: 'en',
+              }}
+              debounce={300}
+              minLength={2}
+              enablePoweredByContainer={false}
+              styles={{
+                container: styles.autocompleteContainer,
+                textInputContainer: styles.textInputContainer,
+                textInput: styles.textInput,
+                listView: styles.listView,
+                row: styles.row,
+                separator: styles.separator,
+                description: styles.description,
+                loader: styles.loader,
+              }}
+              textInputProps={{
+                placeholderTextColor: theme.colors.onSurfaceDisabled,
+                returnKeyType: 'search',
+                editable: isConnected !== false,
+              }}
+              renderLeftButton={() => (
+                <View style={styles.searchIconContainer}>
+                  <IconButton icon="magnify" size={20} />
+                </View>
+              )}
+              renderRightButton={() => (
+                searchRef.current?.getAddressText() ? (
+                  <IconButton 
+                    icon="close" 
+                    size={20}
+                    onPress={() => {
+                      searchRef.current?.setAddressText('');
+                      searchRef.current?.clear();
+                    }}
+                  />
+                ) : null
+              )}
+            />
+          )}
           
           {/* Offline Banner in Search Area */}
           {isConnected === false && (
@@ -408,11 +574,23 @@ export const MapPicker: React.FC<MapPickerProps> = ({
             </View>
           )}
           
-          {/* API Key Warning (Dev only) */}
-          {GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY' && (
+          {/* Configuration Warning */}
+          {!USE_BACKEND_PROXY && GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY' && (
             <View style={styles.apiKeyWarning}>
               <Text variant="bodySmall" style={styles.apiKeyText}>
-                ⚠️ Google Maps API Key required. See GOOGLE_MAPS_API_SETUP.md
+                ⚠️ Configure Firebase backend or add Google Maps API Key
+              </Text>
+              <Text variant="bodySmall" style={styles.apiKeyText}>
+                See FIREBASE_BACKEND_SETUP.md or QUICKSTART_LOCATION_SEARCH.md
+              </Text>
+            </View>
+          )}
+          
+          {/* Backend Status Info (Dev only - remove in production) */}
+          {__DEV__ && USE_BACKEND_PROXY && (
+            <View style={styles.backendInfoBanner}>
+              <Text variant="bodySmall" style={styles.backendInfoText}>
+                🔒 Using secure Firebase backend proxy
               </Text>
             </View>
           )}
@@ -431,21 +609,37 @@ export const MapPicker: React.FC<MapPickerProps> = ({
         />
       </View>
 
-      <Card style={styles.settingsCard} mode="outlined">
+      <Card 
+        style={[
+          styles.settingsCard,
+          theme.dark && {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          }
+        ]} 
+        mode="outlined"
+      >
         <Card.Content>
           <View style={styles.settingRow}>
-            <Text variant="labelMedium">Location Label</Text>
-            <TextInput
+            <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>Location Label</Text>
+            <PaperTextInput
               value={label}
               onChangeText={setLabel}
               placeholder="Enter a name for this location"
-              style={styles.labelInput}
+              placeholderTextColor={theme.dark ? '#B8B8B8' : undefined}
+              style={[
+                styles.labelInput,
+                theme.dark && { 
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  color: '#FFFFFF'
+                }
+              ]}
               dense
             />
           </View>
 
           <View style={styles.settingRow}>
-            <Text variant="labelMedium">Radius: {radius}m</Text>
+            <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>Radius: {radius}m</Text>
             <Slider
               style={styles.slider}
               minimumValue={50}
@@ -454,13 +648,13 @@ export const MapPicker: React.FC<MapPickerProps> = ({
               onValueChange={setRadius}
               step={10}
             />
-            <Text variant="bodySmall" style={styles.radiusHint}>
+            <Text variant="bodySmall" style={[styles.radiusHint, theme.dark && { color: '#B8B8B8' }]}>
               50m - 1000m
             </Text>
           </View>
 
           <View style={styles.settingRow}>
-            <Text variant="labelMedium">Trigger Mode</Text>
+            <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>Trigger Mode</Text>
             <SegmentedButtons
               value={mode}
               onValueChange={(value) => setMode(value as any)}
@@ -609,6 +803,17 @@ const styles = StyleSheet.create({
   },
   apiKeyText: {
     color: '#721C24',
+    textAlign: 'center' as const,
+  },
+  backendInfoBanner: {
+    backgroundColor: '#D4EDDA',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+    elevation: 4,
+  },
+  backendInfoText: {
+    color: '#155724',
     textAlign: 'center' as const,
   },
   locationButton: {
