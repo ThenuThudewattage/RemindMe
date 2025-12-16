@@ -332,8 +332,8 @@ export class ContextEngine {
 
       // If last event was snoozed, check if snooze time has passed
       if (lastEvent.type === 'snoozed') {
-        const metadata = lastEvent.metadata as any;
-        const snoozedUntil = metadata?.snoozedUntil;
+        const payload = lastEvent.payload as any;
+        const snoozedUntil = payload?.snoozedUntil;
         if (snoozedUntil) {
           const snoozeExpired = new Date() >= new Date(snoozedUntil);
           return !snoozeExpired; // Return true if still in snooze period

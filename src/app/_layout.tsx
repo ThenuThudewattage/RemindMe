@@ -25,6 +25,15 @@ function InnerTabs() {
     if (Platform.OS === 'android') {
       setStatusBarBackgroundColor('#6750A4', false);
     }
+
+    // Set up interval to force status bar color every second as fallback
+    const interval = setInterval(() => {
+      if (Platform.OS === 'android') {
+        setStatusBarBackgroundColor('#6750A4', false);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -42,16 +51,6 @@ function InnerTabs() {
           shadowOpacity: 0,
         },
         tabBarLabelStyle: { fontSize: 12 },
-      }}
-      listeners={{
-        tabPress: () => {
-          // Force status bar color on every tab press
-          if (Platform.OS === 'android') {
-            setTimeout(() => {
-              setStatusBarBackgroundColor('#6750A4', false);
-            }, 50);
-          }
-        },
       }}
     >
       {/* Dashboard -> /index */}

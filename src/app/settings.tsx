@@ -508,7 +508,7 @@ export default function SettingsScreen() {
                         </DataTable.Cell>
                         <DataTable.Cell style={{ width: 100 }}>{event.type}</DataTable.Cell>
                         <DataTable.Cell style={{ width: 400 }}>
-                          <Text style={{ fontSize: 11 }}>{event.metadata ? JSON.stringify(event.metadata, null, 1) : '-'}</Text>
+                          <Text style={{ fontSize: 11 }}>{event.payload ? JSON.stringify(event.payload, null, 1) : '-'}</Text>
                         </DataTable.Cell>
                         <DataTable.Cell style={{ width: 160 }}>
                           <Text style={{ fontSize: 11 }}>{new Date(event.createdAt).toLocaleString()}</Text>
