@@ -44,27 +44,22 @@ export class ContextEngine {
   public async checkAllConditions(): Promise<void> {
     try {
       const activeReminders = await this.repo.getActiveReminders();
-      console.log(`📋 Found ${activeReminders.length} active reminder(s)`);
+      console.log(`ContextEngine: Checking conditions for ${activeReminders.length} active reminders`);
       
       if (activeReminders.length === 0) {
-        console.log('⚠️ No active reminders to check');
         return;
       }
       
       for (const reminder of activeReminders) {
-        console.log(`🔍 Checking: "${reminder.title}" (ID: ${reminder.id})`);
-        if (reminder.rule.time) {
-          console.log(`  📅 Raw time data from DB:`, JSON.stringify(reminder.rule.time));
-        }
         await this.evaluateReminder(reminder);
       }
     } catch (error) {
       // If database is not initialized, just log and continue
       if (error instanceof Error && error.message.includes('Database not initialized')) {
-        console.log('All conditions check skipped - database not yet initialized');
+
         return;
       }
-      console.error('❌ Error checking all conditions:', error);
+      console.error('ContextEngine: Error checking all conditions:', error);
     }
   }
 
@@ -79,7 +74,7 @@ export class ContextEngine {
     } catch (error) {
       // If database is not initialized, just log and continue
       if (error instanceof Error && error.message.includes('Database not initialized')) {
-        console.log('Location conditions check skipped - database not yet initialized');
+
         return;
       }
       console.error('Error checking location conditions:', error);
@@ -97,7 +92,7 @@ export class ContextEngine {
     } catch (error) {
       // If database is not initialized, just log and continue
       if (error instanceof Error && error.message.includes('Database not initialized')) {
-        console.log('Battery conditions check skipped - database not yet initialized');
+
         return;
       }
       console.error('Error checking battery conditions:', error);
@@ -115,7 +110,7 @@ export class ContextEngine {
     } catch (error) {
       // If database is not initialized, just log and continue
       if (error instanceof Error && error.message.includes('Database not initialized')) {
-        console.log('Time conditions check skipped - database not yet initialized');
+
         return;
       }
       console.error('Error checking time conditions:', error);
@@ -124,8 +119,6 @@ export class ContextEngine {
 
   private async evaluateReminder(reminder: Reminder): Promise<void> {
     try {
-      console.log(`  Conditions: Time=${!!reminder.rule.time}, Location=${!!reminder.rule.location}, Battery=${!!reminder.rule.battery}`);
-      
       // Get current location if needed
       let currentLocation: Location.LocationObject | null = null;
       if (reminder.rule.location) {
@@ -149,13 +142,12 @@ export class ContextEngine {
         currentBatteryState
       );
 
-      console.log(`  Result: ${conditionsMet ? '✅ WILL TRIGGER' : '❌ Conditions not met'}`);
-
       if (conditionsMet) {
+        console.log(`Conditions met: reminder=${reminder.id}, title="${reminder.title}"`);
         await this.triggerReminder(reminder);
       }
     } catch (error) {
-      console.error('❌ Error evaluating reminder:', error);
+      console.error('Error evaluating reminder:', error);
     }
   }
 
@@ -251,86 +243,53 @@ export class ContextEngine {
     batteryState: BatteryState | null
   ): Promise<boolean> {
     try {
-      console.log(`  📋 Checking all conditions for: "${reminder.title}"`);      
-
-      // Check if reminder has already been triggered and not yet acted upon
       if (await this.hasUnresolvedTrigger(reminder)) {
-        console.log(`    ❌ Already triggered - waiting for user action`);
         return false;
       }
 
-      // Check if it's quiet hours
       if (this.isQuietHours(reminder)) {
-        console.log(`    ❌ Quiet hours active`);
         return false;
       }
 
-      // Check if reminder has expired
       if (this.isExpired(reminder)) {
-        console.log(`    ❌ Reminder expired`);
         return false;
       }
 
       let hasActiveRules = false;
 
-      // Check time condition
       if (reminder.rule.time) {
         hasActiveRules = true;
-        console.log(`    ⏰ Checking time condition...`);
         if (!this.checkTimeCondition(reminder.rule.time)) {
           return false;
         }
-      } else {
-        console.log(`    ⏰ No time condition`);
       }
 
-      // Check location condition
       if (reminder.rule.location) {
         hasActiveRules = true;
-        console.log(`    📍 Checking location condition...`);
         
-        // If geofencing is enabled, we defer to the GeofencingService (background task)
-        // instead of checking it here in the foreground loop.
-        // This prevents double-triggering and ensures consistent behavior.
         if (reminder.locationTrigger?.enabled) {
-           console.log(`    📍 Handled by GeofencingService (background) - skipping foreground check`);
-           // We return false here because this engine shouldn't trigger it.
-           // The GeofencingService will trigger it via its own event path.
            return false;
         }
 
         if (!this.checkLocationCondition(reminder.rule.location, location)) {
-          console.log(`    ❌ Location condition not met`);
           return false;
         }
-        console.log(`    ✅ Location condition met`);
-      } else {
-        console.log(`    📍 No location condition`);
       }
 
-      // Check battery condition
       if (reminder.rule.battery) {
         hasActiveRules = true;
-        console.log(`    🔋 Checking battery condition...`);
         if (!this.checkBatteryCondition(reminder.rule.battery, batteryState)) {
-          console.log(`    ❌ Battery condition not met`);
           return false;
         }
-        console.log(`    ✅ Battery condition met`);
-      } else {
-        console.log(`    🔋 No battery condition`);
       }
 
       if (!hasActiveRules) {
         if (reminder.locationTrigger?.enabled) {
-           console.log(`    📍 Handled by GeofencingService (background)`);
            return false;
         }
-        console.log(`    ⚠️ No active rules found`);
         return false;
       }
 
-      console.log(`  ✅ ALL CONDITIONS MET!`);
       return true;
     } catch (error) {
       console.error('Error checking conditions:', error);
@@ -415,41 +374,26 @@ export class ContextEngine {
   private checkTimeCondition(timeRule: NonNullable<Reminder['rule']['time']>): boolean {
     try {
       const now = new Date();
-      console.log(`    ⏰ Time Check Details:`);
-      console.log(`       Current time: ${now.toLocaleString()} (${now.getTime()})`);
       
       if (timeRule.start) {
         const startTime = new Date(timeRule.start);
-        console.log(`       Start time raw: "${timeRule.start}"`);
-        console.log(`       Start time parsed: ${startTime.toLocaleString()} (${startTime.getTime()})`);
-        console.log(`       Difference: ${(now.getTime() - startTime.getTime()) / 1000} seconds`);
         
         if (now < startTime) {
-          console.log(`    ❌ Too early (current ${now.getTime()} < start ${startTime.getTime()})`);
           return false;
-        } else {
-          console.log(`    ✅ After start time`);
         }
       }
       
       if (timeRule.end) {
         const endTime = new Date(timeRule.end);
         
-        console.log(`       End time raw: "${timeRule.end}"`);
-        console.log(`       End time parsed: ${endTime.toLocaleString()} (${endTime.getTime()})`);
-        
         if (now > endTime) {
-          console.log(`    ❌ Too late (current ${now.getTime()} > end ${endTime.getTime()})`);
           return false;
-        } else {
-          console.log(`    ✅ Before end time`);
         }
       }
       
-      console.log(`    ✅ Time condition MET!`);
       return true;
     } catch (error) {
-      console.error('❌ Error checking time condition:', error);
+      console.error('Error checking time condition:', error);
       return false;
     }
   }
@@ -503,19 +447,13 @@ export class ContextEngine {
 
   private async triggerReminder(reminder: Reminder): Promise<void> {
     try {
-      console.log('🔔 Triggering reminder:', reminder.title);
-      
-      // Check if this is an alarm reminder
+      console.log(`Triggering reminder: id=${reminder.id}, title="${reminder.title}", hasAlarm=${!!reminder.alarm?.enabled}`);
       if (reminder.alarm?.enabled) {
-        console.log('⏰ Alarm enabled - triggering full alarm notification');
-        // Use AlarmService for alarm reminders
         const AlarmService = (await import('./alarm')).default;
         const alarmService = AlarmService.getInstance();
         await alarmService.initialize();
         await alarmService.triggerAlarm(reminder, 'time');
       } else {
-        console.log('🔔 Regular notification - showing banner');
-        // Use NotificationService for regular reminders - no cooldown
         await this.notificationService.showImmediateNotification(
           reminder.id,
           reminder.title,
@@ -530,9 +468,9 @@ export class ContextEngine {
         isAlarm: reminder.alarm?.enabled || false,
       });
 
-      console.log('✅ Reminder triggered successfully:', reminder.id);
+      console.log(`Reminder triggered successfully: id=${reminder.id}`);
     } catch (error) {
-      console.error('❌ Error triggering reminder:', error);
+      console.error('Error triggering reminder:', error);
     }
   }
 }

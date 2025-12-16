@@ -1,22 +1,9 @@
-/**
- * LOCAL NOTIFICATIONS SERVICE
- * 
- * This service handles LOCAL notifications only (no remote push notifications).
- * Works with Expo Go and development builds.
- * 
- * Features:
- * - Schedule local notifications based on time, location, battery
- * - Handle notification actions (Complete, Snooze, Dismiss)
- * - Manage notification categories and permissions
- * - Background notification processing
- */
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { NotificationPermissionStatus, NotificationAction, NotificationCategory, Reminder } from '../types/reminder';
 
-// Configure LOCAL notification behavior (no remote push notifications)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -58,17 +45,16 @@ class NotificationService {
       // Check if we're in Expo Go
       const isExpoGo = Constants.appOwnership === 'expo';
       if (isExpoGo) {
-        console.log('ℹ️ Running in Expo Go - using LOCAL notifications only');
-        console.log('ℹ️ Remote push notifications require a development build');
+
       }
       
       // Request permissions for local notifications only
       await this.requestPermissions();
       await this.setupNotificationCategories();
       await this.setupNotificationListeners();
-      console.log('✅ Local notification service initialized successfully');
+
     } catch (error) {
-      console.error('❌ Failed to initialize notification service:', error);
+      console.error('Failed to initialize notification service:', error);
       // Don't throw - allow app to continue without notifications
     }
   }
@@ -115,6 +101,7 @@ class NotificationService {
         });
       }
 
+      console.log('Notification permissions granted successfully');
       return {
         granted: true,
         canAskAgain: false,
@@ -233,7 +220,7 @@ class NotificationService {
         }
       );
 
-      console.log(`✅ Notification categories set up for ${Platform.OS}`);
+
     } catch (error) {
       console.error('Error setting up notification categories:', error);
     }
@@ -253,16 +240,18 @@ class NotificationService {
 
       // Listen for notifications received while app is running
       this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
-        console.log('Notification received:', notification);
+        const reminderId = notification.request.content.data?.reminderId;
+        console.log(`Notification received: reminderId=${reminderId}, title="${notification.request.content.title}"`);
       });
 
       // Listen for user interactions with notifications
       this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-        console.log('Notification response:', response);
+        const reminderId = response.notification.request.content.data?.reminderId;
+        console.log(`Notification response: reminderId=${reminderId}, action="${response.actionIdentifier}"`);
         this.handleNotificationResponse(response);
       });
 
-      console.log('Notification listeners set up');
+
     } catch (error) {
       console.error('Error setting up notification listeners:', error);
     }
@@ -280,6 +269,7 @@ class NotificationService {
         return;
       }
 
+      console.log(`Handling notification action: reminderId=${reminderId}, action="${actionIdentifier}", type=${notificationType}`);
       // Check if this notification should trigger an alarm
       if (shouldTriggerAlarm && notificationType === 'alarm') {
         // Import alarm service dynamically to avoid circular dependency
@@ -342,7 +332,7 @@ class NotificationService {
         trigger: null,
       });
 
-      console.log('Notification scheduled:', notificationId);
+
       return notificationId;
     } catch (error) {
       console.error('Error showing reminder notification:', error);
@@ -364,7 +354,7 @@ class NotificationService {
         scheduledTime
       );
       
-      console.log('Time-based notification scheduled for:', scheduledTime);
+
       return notificationId;
     } catch (error) {
       console.error('Error scheduling time-based notification:', error);
@@ -383,7 +373,7 @@ class NotificationService {
       
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: `⏰ ${title}`,
+          title: title,
           body: `Snoozed for ${snoozeMinutes} minutes`,
           data: { reminderId },
           categoryIdentifier: 'REMINDER',
@@ -396,7 +386,7 @@ class NotificationService {
         },
       });
 
-      console.log(`Snooze notification scheduled for ${snoozeMinutes} minutes from now`);
+
       return notificationId;
     } catch (error) {
       console.error('Error scheduling snooze notification:', error);
@@ -407,7 +397,7 @@ class NotificationService {
   public async cancelNotification(notificationId: string): Promise<void> {
     try {
       await Notifications.cancelScheduledNotificationAsync(notificationId);
-      console.log('Notification cancelled:', notificationId);
+
     } catch (error) {
       console.error('Error cancelling notification:', error);
     }
@@ -416,7 +406,7 @@ class NotificationService {
   public async cancelAllNotifications(): Promise<void> {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
-      console.log('All notifications cancelled');
+
     } catch (error) {
       console.error('Error cancelling all notifications:', error);
     }
@@ -434,12 +424,12 @@ class NotificationService {
         
         if (toDismiss.length > 0) {
           await Notifications.dismissNotificationAsync(toDismiss[0]);
-          console.log(`Dismissed ${toDismiss.length} notification(s) for reminder ${reminderId}`);
+
         }
       } else {
         // Dismiss all presented notifications
         await Notifications.dismissAllNotificationsAsync();
-        console.log('All presented notifications dismissed');
+
       }
     } catch (error) {
       console.error('Error dismissing presented notifications:', error);
@@ -497,7 +487,7 @@ class NotificationService {
   ): Promise<string> {
     return this.showReminderNotification(
       reminderId,
-      `📍 ${title}`,
+      title,
       `You've reached: ${locationName}`
     );
   }
@@ -512,7 +502,7 @@ class NotificationService {
     batteryLevel: number,
     isCharging: boolean
   ): Promise<string> {
-    const batteryEmoji = isCharging ? '🔋' : batteryLevel < 20 ? '🪫' : '🔋';
+    const batteryEmoji = isCharging ? '⚡' : batteryLevel < 20 ? '!' : '✓';
     return this.showReminderNotification(
       reminderId,
       `${batteryEmoji} ${title}`,
@@ -531,7 +521,7 @@ class NotificationService {
   ): Promise<string> {
     return this.showReminderNotification(
       reminderId,
-      `⏰ ${title}`,
+      title,
       `Scheduled reminder`,
       scheduledTime
     );

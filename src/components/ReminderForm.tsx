@@ -234,17 +234,14 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     // Time condition
     if (hasTimeCondition) {
       if (timeConditionType === 'specific') {
-        console.log('💾 Saving specific time:', specificDateTime.toLocaleString());
-        console.log('💾 As ISO:', toLocalISOString(specificDateTime));
+
         // For specific time, set start and end to the same datetime
         newRule.time = {
           start: toLocalISOString(specificDateTime),
           end: toLocalISOString(specificDateTime),
         };
       } else {
-        console.log('💾 Saving time range:');
-        console.log('  Start:', startDate.toLocaleString(), '→', toLocalISOString(startDate));
-        console.log('  End:', endDate.toLocaleString(), '→', toLocalISOString(endDate));
+
         // For time range
         newRule.time = {
           start: toLocalISOString(startDate),

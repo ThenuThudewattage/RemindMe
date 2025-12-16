@@ -422,8 +422,8 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
-        {/* Database Viewer Card */}
-        <Card style={styles.card} mode="elevated">
+        {/* Database Viewer Card - HIDDEN FOR PRODUCTION */}
+        {/* <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Database Viewer
@@ -525,10 +525,11 @@ export default function SettingsScreen() {
               </ScrollView>
             )}
           </Card.Content>
-        </Card>
+        </Card> */}
 
-        {/* Debug Actions Card */}
-        <Card style={styles.card} mode="elevated">
+        {/* Debug Actions Card - HIDDEN FOR PRODUCTION */}
+        {/*IDDEN FOR PRODUCTION */}
+        {/* <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Debug Actions
@@ -547,7 +548,7 @@ export default function SettingsScreen() {
               Reset Database
             </Button>
           </Card.Content>
-        </Card>
+        </Card> */}
 
         {/* About Card */}
         <Card style={styles.card} mode="elevated">

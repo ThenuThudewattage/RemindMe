@@ -229,7 +229,7 @@ class DatabaseService {
     const locationTriggerJson = input.locationTrigger ? JSON.stringify(input.locationTrigger) : null;
     const alarmJson = input.alarm ? JSON.stringify(input.alarm) : null;
     
-    console.log('💾 Saving reminder with alarm settings:', alarmJson);
+
     
     const result = await this.db.runAsync(
       `INSERT INTO reminders (title, notes, rule_json, location_trigger_json, alarm_json, enabled, created_at, updated_at) 
@@ -273,9 +273,6 @@ class DatabaseService {
     };
 
     if (reminder.alarm) {
-      console.log(`  ⏰ Alarm settings for reminder ${id}:`, JSON.stringify(reminder.alarm));
-    } else {
-      console.log(`  🔔 No alarm settings for reminder ${id} (regular notification)`);
     }
 
     return reminder;
@@ -352,7 +349,7 @@ class DatabaseService {
       ? (input.alarm ? JSON.stringify(input.alarm) : null)
       : (existing.alarm ? JSON.stringify(existing.alarm) : null);
     
-    console.log('💾 Updating reminder with alarm settings:', alarmJson);
+
     
     await this.db.runAsync(
       `UPDATE reminders 

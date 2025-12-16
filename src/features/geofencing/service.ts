@@ -45,7 +45,6 @@ class GeofencingService {
       await this.db.initialize();
       
       this.isInitialized = true;
-      console.log('GeofencingService initialized');
     } catch (error) {
       console.error('Failed to initialize GeofencingService:', error);
       throw error;
@@ -83,16 +82,12 @@ class GeofencingService {
       const initialEvent = isCurrentlyInside ? 'enter' : 'exit';
       await this.db.setGeofenceStatus(reminderId, true, initialEvent);
 
-      console.log(
-        `Geofence registered for reminder ${reminderId}: ` +
-        `Current distance: ${Math.round(distance)}m, ` +
-        `Inside radius: ${isCurrentlyInside}, ` +
-        `Initial state: ${initialEvent}`
-      );
+
 
       // Store geofence configuration
       this.registeredGeofences.set(reminderId, options);
       this.pendingInitialSync.add(reminderId);
+      console.log(`Geofence registered: reminder=${reminderId}, distance=${Math.round(distance)}m, inside=${isCurrentlyInside}, mode=${options.mode}`);
 
       // Start location updates if not already running
       await this.startLocationUpdates();
@@ -110,8 +105,7 @@ class GeofencingService {
 
       // Update database status
       await this.db.setGeofenceStatus(reminderId, false);
-
-      console.log(`Geofence unregistered for reminder ${reminderId}`);
+      console.log(`Geofence unregistered: reminder=${reminderId}, remaining=${this.registeredGeofences.size}`);
 
       // Stop location updates if no active geofences
       if (this.registeredGeofences.size === 0) {
@@ -151,7 +145,6 @@ class GeofencingService {
 
       if (restoredCount > 0) {
         await this.startLocationUpdates();
-        console.log(`Restored ${restoredCount} geofences on launch`);
       }
     } catch (error) {
       console.error('Failed to restore geofences on launch:', error);
@@ -178,14 +171,12 @@ class GeofencingService {
       // Get the reminder details
       const reminder = await this.db.getReminderById(parseInt(reminderId));
       if (!reminder || !reminder.enabled) {
-        console.log(`Geofence event ignored - reminder ${reminderId} not found or disabled`);
         return;
       }
 
       // Check if the trigger mode matches the event
       const locationTrigger = reminder.locationTrigger;
       if (!locationTrigger || !locationTrigger.enabled) {
-        console.log(`Geofence event ignored - location trigger not enabled for reminder ${reminderId}`);
         return;
       }
 
@@ -195,10 +186,11 @@ class GeofencingService {
         (locationTrigger.mode === 'exit' && type === 'exit');
 
       if (!shouldTrigger) {
-        console.log(`Geofence event ignored - mode mismatch for reminder ${reminderId}`);
+        console.log(`Geofence event skipped: reminder=${reminderId}, event=${type}, mode=${locationTrigger.mode}`);
         return;
       }
 
+      console.log(`Geofence event triggered: reminder=${reminderId}, event=${type}, title="${reminder.title}"`);
       // Fire notification
       await this.fireLocationNotification(reminder, type, locationTrigger);
 
@@ -209,7 +201,7 @@ class GeofencingService {
         timestamp,
       });
 
-      console.log(`Geofence event processed for reminder ${reminderId}: ${type}`);
+
     } catch (error) {
       console.error('Failed to process geofence event:', error);
     }
@@ -230,7 +222,6 @@ class GeofencingService {
         const AlarmService = (await import('../../services/alarm')).default;
         const alarmService = AlarmService.getInstance();
         await alarmService.triggerAlarm(reminder, 'location');
-        console.log(`Location-based alarm triggered for reminder ${reminder.id}`);
       } else {
         // Show regular notification
         await this.notificationService.showReminderNotification(
@@ -271,7 +262,6 @@ class GeofencingService {
       if (isTaskDefined) {
         const isRegistered = await TaskManager.isTaskRegisteredAsync(GEOFENCE_TASK_NAME);
         if (isRegistered) {
-          console.log('Location updates already running');
           return;
         }
       }
@@ -288,7 +278,7 @@ class GeofencingService {
         },
       });
 
-      console.log('Location updates started for geofencing');
+
     } catch (error) {
       console.error('Failed to start location updates:', error);
       throw error;
@@ -300,7 +290,6 @@ class GeofencingService {
       const isRegistered = await TaskManager.isTaskRegisteredAsync(GEOFENCE_TASK_NAME);
       if (isRegistered) {
         await Location.stopLocationUpdatesAsync(GEOFENCE_TASK_NAME);
-        console.log('Location updates stopped');
       }
     } catch (error) {
       console.error('Failed to stop location updates:', error);
@@ -349,9 +338,7 @@ class GeofencingService {
           const baselineEvent: 'enter' | 'exit' = isInside ? 'enter' : 'exit';
           await this.db.setGeofenceStatus(reminderId, true, baselineEvent);
           this.pendingInitialSync.delete(reminderId);
-          console.log(
-            `Reminder ${reminderId}: initial sync baseline recorded as ${baselineEvent} (distance: ${Math.round(distance)}m)`
-          );
+          console.log(`Initial sync baseline: reminder=${reminderId}, state=${baselineEvent}, distance=${Math.round(distance)}m`);
           continue;
         }
 
@@ -364,11 +351,11 @@ class GeofencingService {
         if (isInside && !wasInside) {
           // User just entered the geofence radius
           eventType = 'enter';
-          console.log(`Reminder ${reminderId}: ENTER detected (distance: ${Math.round(distance)}m)`);
+          console.log(`Location state change: reminder=${reminderId}, event=ENTER, distance=${Math.round(distance)}m, radius=${geofence.radius}m`);
         } else if (!isInside && wasInside) {
           // User just exited the geofence radius  
           eventType = 'exit';
-          console.log(`Reminder ${reminderId}: EXIT detected (distance: ${Math.round(distance)}m)`);
+          console.log(`Location state change: reminder=${reminderId}, event=EXIT, distance=${Math.round(distance)}m, radius=${geofence.radius}m`);
         }
 
         if (eventType) {
@@ -401,7 +388,6 @@ class GeofencingService {
 
   // Testing/debugging methods
   public async simulateGeofenceEvent(reminderId: string, eventType: 'enter' | 'exit'): Promise<void> {
-    console.log(`Simulating geofence ${eventType} event for reminder ${reminderId}`);
     await this.onGeofenceEvent({
       reminderId,
       type: eventType,

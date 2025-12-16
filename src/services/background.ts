@@ -30,8 +30,8 @@ class BackgroundService {
       
       // Initialize geofencing
       await this.initializeGeofencing();
-      
-      console.log('Background service initialized');
+      console.log('Background service: Geofencing initialized');
+
     } catch (error) {
       console.warn('Background service initialization failed (this is expected in Expo Go):', error);
       // Don't throw error - this is expected in development
@@ -39,25 +39,19 @@ class BackgroundService {
   }
 
   private async defineBackgroundTasks(): Promise<void> {
-    // Define the background fetch task
     TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
       try {
-        const now = new Date().toLocaleTimeString();
-        console.log(`🔄 [${now}] Background fetch task executed`);
-        
-        // Check battery conditions
+        console.log('Background fetch task: Starting condition check');
         const batteryService = BatteryService.getInstance();
-        const batteryState = await batteryService.getCurrentBatteryState();
-        console.log(`🔋 Battery: ${Math.round(batteryState.batteryLevel * 100)}%`);
+        await batteryService.getCurrentBatteryState();
         
-        // Use context engine to check conditions
         const contextEngine = ContextEngine.getInstance();
         await contextEngine.checkAllConditions();
+        console.log('Background fetch task: Completed successfully');
         
-        console.log(`✅ [${now}] Background fetch completed`);
         return BackgroundFetch.BackgroundFetchResult.NewData;
       } catch (error) {
-        console.error('❌ Background fetch task error:', error);
+        console.error('Background fetch task error:', error);
         return BackgroundFetch.BackgroundFetchResult.Failed;
       }
     });
@@ -80,7 +74,8 @@ class BackgroundService {
       });
 
       this.isRegistered = true;
-      console.log('Background fetch registered');
+      console.log('Background fetch: Registered successfully with 60s interval');
+
     } catch (error) {
       console.error('Error registering background fetch:', error);
     }
@@ -90,7 +85,7 @@ class BackgroundService {
     try {
       await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
       this.isRegistered = false;
-      console.log('Background fetch unregistered');
+
     } catch (error) {
       console.error('Error unregistering background fetch:', error);
     }
@@ -114,7 +109,7 @@ class BackgroundService {
     try {
       const locationService = LocationService.getInstance();
       await locationService.startGeofencing([]);
-      console.log('Background location tracking started');
+
     } catch (error) {
       console.error('Error starting background location tracking:', error);
     }
@@ -124,7 +119,7 @@ class BackgroundService {
     try {
       const locationService = LocationService.getInstance();
       await locationService.stopGeofencing();
-      console.log('Background location tracking stopped');
+
     } catch (error) {
       console.error('Error stopping background location tracking:', error);
     }
@@ -134,7 +129,7 @@ class BackgroundService {
     try {
       const batteryService = BatteryService.getInstance();
       await batteryService.startBatteryMonitoring();
-      console.log('Background battery monitoring started');
+
     } catch (error) {
       console.error('Error starting background battery monitoring:', error);
     }
@@ -144,7 +139,7 @@ class BackgroundService {
     try {
       const batteryService = BatteryService.getInstance();
       await batteryService.stopBatteryMonitoring();
-      console.log('Background battery monitoring stopped');
+
     } catch (error) {
       console.error('Error stopping background battery monitoring:', error);
     }
@@ -154,7 +149,7 @@ class BackgroundService {
     try {
       await this.startLocationTracking();
       await this.startBatteryMonitoring();
-      console.log('All background tasks started');
+
     } catch (error) {
       console.error('Error starting background tasks:', error);
     }
@@ -165,7 +160,7 @@ class BackgroundService {
       await this.stopLocationTracking();
       await this.stopBatteryMonitoring();
       await this.unregisterBackgroundFetch();
-      console.log('All background tasks stopped');
+
     } catch (error) {
       console.error('Error stopping background tasks:', error);
     }
@@ -237,7 +232,7 @@ class BackgroundService {
     try {
       const reminderRepo = ReminderRepository.getInstance();
       await reminderRepo.restoreGeofences();
-      console.log('Geofencing initialized and restored');
+
     } catch (error) {
       console.warn('Failed to initialize geofencing:', error);
       // Don't throw - app should continue working without geofencing

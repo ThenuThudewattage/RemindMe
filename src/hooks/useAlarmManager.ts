@@ -1,24 +1,3 @@
-/**
- * USE ALARM MANAGER HOOK
- * 
- * React hook for managing alarm lifecycle in components
- * Provides convenient methods to trigger, snooze, and dismiss alarms
- * 
- * Usage:
- * ```tsx
- * const { triggerAlarm, snoozeAlarm, dismissAlarm, currentAlarm, isRinging } = useAlarmManager();
- * 
- * // Trigger alarm for a reminder
- * await triggerAlarm(reminder, 'location');
- * 
- * // Snooze current alarm
- * await snoozeAlarm(5); // Snooze for 5 minutes
- * 
- * // Dismiss alarm
- * await dismissAlarm();
- * ```
- */
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
@@ -83,7 +62,7 @@ export const useAlarmManager = (): UseAlarmManagerReturn => {
    */
   const setupAlarmTriggerHandler = () => {
     alarmService.current.setAlarmTriggerHandler((trigger: AlarmTrigger) => {
-      console.log('Alarm trigger received:', trigger);
+
       
       // Navigate to alarm screen
       router.push({

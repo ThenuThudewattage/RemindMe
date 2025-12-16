@@ -167,7 +167,7 @@ function RootTabsContent() {
         console.log('Starting background service initialization...');
         const backgroundService = BackgroundService.getInstance();
         await backgroundService.initialize();
-        console.log('✅ Background service initialized successfully');
+        console.log('Background service initialized successfully');
         
         setIsDbReady(true);
       } catch (error) {
@@ -209,26 +209,26 @@ function RootTabsContent() {
   useEffect(() => {
     if (!isDbReady) return;
 
-    console.log('🔄 Starting foreground condition checker');
+    console.log('Starting foreground condition checker');
     const contextEngine = ContextEngine.getInstance();
     
     // Check immediately
     contextEngine.checkAllConditions().catch(err => {
-      console.error('❌ Error in initial condition check:', err);
+      console.error('Error in initial condition check:', err);
     });
 
     // Check every 30 seconds
     const intervalId = setInterval(async () => {
-      console.log('⏰ Foreground check: Evaluating reminders...');
+
       try {
         await contextEngine.checkAllConditions();
       } catch (error) {
-        console.error('❌ Error in foreground check:', error);
+        console.error('Error in foreground check:', error);
       }
     }, 30000);
 
     return () => {
-      console.log('🛑 Stopping foreground condition checker');
+
       clearInterval(intervalId);
     };
   }, [isDbReady]);
@@ -240,7 +240,7 @@ function RootTabsContent() {
       
       // If it's an alarm notification, navigate to alarm screen
       if (data.type === 'alarm' && data.reminderId) {
-        console.log('🔔 Alarm notification tapped, opening alarm screen');
+
         router.push({
           pathname: '/alarm',
           params: {
