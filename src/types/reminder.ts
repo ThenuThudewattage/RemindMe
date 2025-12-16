@@ -40,6 +40,7 @@ export interface AlarmSettings {
   vibrate?: boolean; // Whether to vibrate (default true)
   snoozeInterval?: number; // Snooze duration in minutes (default 10)
   maxSnoozeCount?: number; // Maximum number of snoozes allowed (default 3)
+  cooldownMins?: number; // Cooldown period in minutes to prevent rapid re-triggering (optional, no default)
   wakeScreen?: boolean; // Wake screen when alarm fires (default true)
 }
 

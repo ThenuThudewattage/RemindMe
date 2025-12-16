@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { app } from '../config/firebase';
 import DatabaseService from '../services/db';
+import BackgroundService from '../services/background';
 import { BRAND } from '../theme';
 import { ThemeProvider, useAppTheme } from '../contexts/ThemeContext';
 import ContextEngine from '../services/contextEngine';
@@ -146,6 +147,11 @@ function RootTabsContent() {
               });
           }
         });
+        // Initialize background service after database is ready
+        console.log('Starting background service initialization...');
+        const backgroundService = BackgroundService.getInstance();
+        await backgroundService.initialize();
+        console.log('✅ Background service initialized successfully');
         
         setIsDbReady(true);
       } catch (error) {

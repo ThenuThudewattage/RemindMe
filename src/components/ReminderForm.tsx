@@ -131,8 +131,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   const [alarmEnabled, setAlarmEnabled] = useState(initialValues?.alarm?.enabled ?? false);
   const [alarmVolume, setAlarmVolume] = useState(initialValues?.alarm?.volume ?? 1.0);
   const [alarmVibrate, setAlarmVibrate] = useState(initialValues?.alarm?.vibrate ?? true);
-  const [alarmSnoozeInterval, setAlarmSnoozeInterval] = useState(initialValues?.alarm?.snoozeInterval ?? 10);
-  const [alarmMaxSnooze, setAlarmMaxSnooze] = useState(initialValues?.alarm?.maxSnoozeCount ?? 3);
+  const [alarmCooldown, setAlarmCooldown] = useState<number | undefined>(initialValues?.alarm?.cooldownMins);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -267,10 +266,6 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
     if (repeat !== 'none') {
       newRule.options = {};
       newRule.options.repeat = repeat as any;
-      newRule.options.cooldownMins = 10; // Always use 10 minute cooldown
-    } else {
-      // Even if no repeat, set cooldown for snooze functionality
-      newRule.options = { cooldownMins: 10 };
     }
 
     return newRule;
@@ -333,8 +328,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           enabled: true,
           volume: alarmVolume,
           vibrate: alarmVibrate,
-          snoozeInterval: alarmSnoozeInterval,
-          maxSnoozeCount: alarmMaxSnooze,
+          ...(alarmCooldown !== undefined && { cooldownMins: alarmCooldown }),
           wakeScreen: true,
         } : undefined,
         enabled,
@@ -703,7 +697,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                     styles.timeText,
                                     theme.dark && { color: '#B8B8B8' },
                                     tempSpecificMonth === i && styles.selectedTimeText,
-                                    tempSpecificMonth === i && theme.dark && { backgroundColor: 'rgba(139, 115, 200, 0.3)', color: '#FFFFFF' }
+                                    tempSpecificMonth === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                   ]}
                                 >
                                   {getMonthName(i)}
@@ -728,7 +722,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                   variant="titleMedium" 
                                   style={[
                                     styles.timeText,
-                                    tempSpecificDay === (i + 1) && styles.selectedTimeText
+                                    theme.dark && { color: '#B8B8B8' },
+                                    tempSpecificDay === (i + 1) && styles.selectedTimeText,
+                                    tempSpecificDay === (i + 1) && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                   ]}
                                 >
                                   {(i + 1).toString().padStart(2, '0')}
@@ -739,7 +735,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                         </View>
                         
                         <View style={styles.datePicker}>
-                          <Text variant="bodySmall" style={styles.timePickerLabel}>Year</Text>
+                          <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Year</Text>
                           <ScrollView 
                             style={styles.dateScrollView}
                             showsVerticalScrollIndicator={false}
@@ -755,7 +751,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                     variant="titleMedium" 
                                     style={[
                                       styles.timeText,
-                                      tempSpecificYear === year && styles.selectedTimeText
+                                      theme.dark && { color: '#B8B8B8' },
+                                      tempSpecificYear === year && styles.selectedTimeText,
+                                      tempSpecificYear === year && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                     ]}
                                   >
                                     {year}
@@ -791,10 +789,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                   {/* Time Picker */}
                   {editingSpecificTime && (
                     <View style={styles.timePickerSection}>
-                      <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Time</Text>
-                      <View style={styles.timePickerContainer}>
+                      <Text variant="bodySmall" style={[styles.pickerSectionLabel, theme.dark && { color: '#FFFFFF' }]}>Edit Time</Text>
+                      <View style={[styles.timePickerContainer, theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}>
                         <View style={styles.timePicker}>
-                          <Text variant="bodySmall" style={styles.timePickerLabel}>Hour</Text>
+                          <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Hour</Text>
                           <ScrollView 
                             style={styles.timeScrollView}
                             showsVerticalScrollIndicator={false}
@@ -808,7 +806,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                   variant="titleMedium" 
                                   style={[
                                     styles.timeText,
-                                    tempSpecificHour === i && styles.selectedTimeText
+                                    theme.dark && { color: '#B8B8B8' },
+                                    tempSpecificHour === i && styles.selectedTimeText,
+                                    tempSpecificHour === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                   ]}
                                 >
                                   {i.toString().padStart(2, '0')}
@@ -818,10 +818,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                           </ScrollView>
                         </View>
                         
-                        <Text variant="titleLarge" style={styles.timeSeparator}>:</Text>
+                        <Text variant="titleLarge" style={[styles.timeSeparator, theme.dark && { color: '#B8B8B8' }]}>:</Text>
                         
                         <View style={styles.timePicker}>
-                          <Text variant="bodySmall" style={styles.timePickerLabel}>Minute</Text>
+                          <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Minute</Text>
                           <ScrollView 
                             style={styles.timeScrollView}
                             showsVerticalScrollIndicator={false}
@@ -835,7 +835,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                   variant="titleMedium" 
                                   style={[
                                     styles.timeText,
-                                    tempSpecificMinute === i && styles.selectedTimeText
+                                    theme.dark && { color: '#B8B8B8' },
+                                    tempSpecificMinute === i && styles.selectedTimeText,
+                                    tempSpecificMinute === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                   ]}
                                 >
                                   {i.toString().padStart(2, '0')}
@@ -908,10 +910,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 {/* Date Picker */}
                 {editingStartDate && (
                   <View style={styles.datePickerSection}>
-                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Date</Text>
-                    <View style={styles.datePickerContainer}>
+                    <Text variant="bodySmall" style={[styles.pickerSectionLabel, theme.dark && { color: '#FFFFFF' }]}>Edit Date</Text>
+                    <View style={[styles.datePickerContainer, theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}>
                       <View style={styles.datePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Month</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Month</Text>
                         <ScrollView 
                           style={styles.dateScrollView}
                           showsVerticalScrollIndicator={false}
@@ -925,7 +927,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempStartMonth === i && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempStartMonth === i && styles.selectedTimeText,
+                                  tempStartMonth === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {getMonthName(i)}
@@ -936,7 +940,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                       </View>
                       
                       <View style={styles.datePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Day</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Day</Text>
                         <ScrollView 
                           style={styles.dateScrollView}
                           showsVerticalScrollIndicator={false}
@@ -950,7 +954,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempStartDay === (i + 1) && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempStartDay === (i + 1) && styles.selectedTimeText,
+                                  tempStartDay === (i + 1) && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {(i + 1).toString().padStart(2, '0')}
@@ -961,7 +967,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                       </View>
                       
                       <View style={styles.datePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Year</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Year</Text>
                         <ScrollView 
                           style={styles.dateScrollView}
                           showsVerticalScrollIndicator={false}
@@ -977,7 +983,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                   variant="titleMedium" 
                                   style={[
                                     styles.timeText,
-                                    tempStartYear === year && styles.selectedTimeText
+                                    theme.dark && { color: '#B8B8B8' },
+                                    tempStartYear === year && styles.selectedTimeText,
+                                    tempStartYear === year && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                   ]}
                                 >
                                   {year}
@@ -1013,10 +1021,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 {/* Time Picker */}
                 {editingStartTime && (
                   <View style={styles.timePickerSection}>
-                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Time</Text>
-                    <View style={styles.timePickerContainer}>
+                    <Text variant="bodySmall" style={[styles.pickerSectionLabel, theme.dark && { color: '#FFFFFF' }]}>Edit Time</Text>
+                    <View style={[styles.timePickerContainer, theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}>
                       <View style={styles.timePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Hour</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Hour</Text>
                         <ScrollView 
                           style={styles.timeScrollView}
                           showsVerticalScrollIndicator={false}
@@ -1030,7 +1038,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempStartHour === i && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempStartHour === i && styles.selectedTimeText,
+                                  tempStartHour === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {i.toString().padStart(2, '0')}
@@ -1040,10 +1050,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                         </ScrollView>
                       </View>
                       
-                      <Text variant="titleLarge" style={styles.timeSeparator}>:</Text>
+                      <Text variant="titleLarge" style={[styles.timeSeparator, theme.dark && { color: '#B8B8B8' }]}>:</Text>
                       
                       <View style={styles.timePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Minute</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Minute</Text>
                         <ScrollView 
                           style={styles.timeScrollView}
                           showsVerticalScrollIndicator={false}
@@ -1057,7 +1067,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempStartMinute === i && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempStartMinute === i && styles.selectedTimeText,
+                                  tempStartMinute === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {i.toString().padStart(2, '0')}
@@ -1129,10 +1141,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 {/* Date Picker */}
                 {editingEndDate && (
                   <View style={styles.datePickerSection}>
-                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Date</Text>
-                    <View style={styles.datePickerContainer}>
+                    <Text variant="bodySmall" style={[styles.pickerSectionLabel, theme.dark && { color: '#FFFFFF' }]}>Edit Date</Text>
+                    <View style={[styles.datePickerContainer, theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}>
                       <View style={styles.datePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Month</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Month</Text>
                         <ScrollView 
                           style={styles.dateScrollView}
                           showsVerticalScrollIndicator={false}
@@ -1146,7 +1158,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempEndMonth === i && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempEndMonth === i && styles.selectedTimeText,
+                                  tempEndMonth === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {getMonthName(i)}
@@ -1157,7 +1171,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                       </View>
                       
                       <View style={styles.datePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Day</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Day</Text>
                         <ScrollView 
                           style={styles.dateScrollView}
                           showsVerticalScrollIndicator={false}
@@ -1171,7 +1185,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempEndDay === (i + 1) && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempEndDay === (i + 1) && styles.selectedTimeText,
+                                  tempEndDay === (i + 1) && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {(i + 1).toString().padStart(2, '0')}
@@ -1182,7 +1198,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                       </View>
                       
                       <View style={styles.datePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Year</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Year</Text>
                         <ScrollView 
                           style={styles.dateScrollView}
                           showsVerticalScrollIndicator={false}
@@ -1198,7 +1214,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                   variant="titleMedium" 
                                   style={[
                                     styles.timeText,
-                                    tempEndYear === year && styles.selectedTimeText
+                                    theme.dark && { color: '#B8B8B8' },
+                                    tempEndYear === year && styles.selectedTimeText,
+                                    tempEndYear === year && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                   ]}
                                 >
                                   {year}
@@ -1234,10 +1252,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 {/* Time Picker */}
                 {editingEndTime && (
                   <View style={styles.timePickerSection}>
-                    <Text variant="bodySmall" style={styles.pickerSectionLabel}>Edit Time</Text>
-                    <View style={styles.timePickerContainer}>
+                    <Text variant="bodySmall" style={[styles.pickerSectionLabel, theme.dark && { color: '#FFFFFF' }]}>Edit Time</Text>
+                    <View style={[styles.timePickerContainer, theme.dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}>
                       <View style={styles.timePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Hour</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Hour</Text>
                         <ScrollView 
                           style={styles.timeScrollView}
                           showsVerticalScrollIndicator={false}
@@ -1251,7 +1269,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempEndHour === i && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempEndHour === i && styles.selectedTimeText,
+                                  tempEndHour === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {i.toString().padStart(2, '0')}
@@ -1261,10 +1281,10 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                         </ScrollView>
                       </View>
                       
-                      <Text variant="titleLarge" style={styles.timeSeparator}>:</Text>
+                      <Text variant="titleLarge" style={[styles.timeSeparator, theme.dark && { color: '#B8B8B8' }]}>:</Text>
                       
                       <View style={styles.timePicker}>
-                        <Text variant="bodySmall" style={styles.timePickerLabel}>Minute</Text>
+                        <Text variant="bodySmall" style={[styles.timePickerLabel, theme.dark && { color: '#B8B8B8' }]}>Minute</Text>
                         <ScrollView 
                           style={styles.timeScrollView}
                           showsVerticalScrollIndicator={false}
@@ -1278,7 +1298,9 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                                 variant="titleMedium" 
                                 style={[
                                   styles.timeText,
-                                  tempEndMinute === i && styles.selectedTimeText
+                                  theme.dark && { color: '#B8B8B8' },
+                                  tempEndMinute === i && styles.selectedTimeText,
+                                  tempEndMinute === i && theme.dark && { backgroundColor: 'rgba(107, 70, 193, 0.3)', color: '#FFFFFF' }
                                 ]}
                               >
                                 {i.toString().padStart(2, '0')}
@@ -1451,7 +1473,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               
               {(batteryMode === 'min' || batteryMode === 'range') && (
                 <View style={styles.sliderContainer}>
-                  <Text variant="labelMedium">
+                  <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>
                     Minimum Battery: {batteryMin}%
                   </Text>
                   <Slider
@@ -1467,7 +1489,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               
               {(batteryMode === 'max' || batteryMode === 'range') && (
                 <View style={styles.sliderContainer}>
-                  <Text variant="labelMedium">
+                  <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>
                     Maximum Battery: {batteryMax}%
                   </Text>
                   <Slider
@@ -1499,7 +1521,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         <Card.Content>
           <View style={styles.sectionHeader}>
             <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
-              {preset === 'location' ? '� Wake Me There' : preset === 'time' ? '⏰ Remind Me Later' : '�🔔 Alarm Settings'}
+              {preset === 'location' ? '� Wake Me There' : preset === 'time' ? '⏰ Remind Me Later' : ' Alarm Settings'}
             </Text>
           </View>
           
@@ -1536,21 +1558,21 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               theme.dark && { color: '#B8B8B8' },
             ]}>
               {alarmEnabled 
-                ? '🔊 Strong alarm with looping sound, vibration, and full-screen alert'
-                : '🔔 Standard notification - silent or single sound, appears in notification shade'
+                ? 'Strong alarm with looping sound, vibration, and full-screen alert'
+                : 'Standard notification - silent or single sound, appears in notification shade'
               }
             </Text>
           </View>
           
           {alarmEnabled && (
             <View>
-              <Text variant="bodySmall" style={styles.helperText}>
+              <Text variant="bodySmall" style={[styles.helperText, theme.dark && { color: '#B8B8B8' }]}>
                 Enable a strong alarm that will wake you up even if the app is backgrounded or the screen is off.
               </Text>
 
               {/* Volume Slider */}
               <View style={styles.sliderContainer}>
-                <Text variant="labelMedium">
+                <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>
                   Alarm Volume: {Math.round(alarmVolume * 100)}%
                 </Text>
                 <Slider
@@ -1565,41 +1587,29 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
 
               {/* Vibration Toggle */}
               <View style={styles.optionRow}>
-                <Text variant="labelMedium">Vibrate</Text>
+                <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>Vibrate</Text>
                 <Switch
                   value={alarmVibrate}
                   onValueChange={setAlarmVibrate}
                 />
               </View>
 
-              {/* Snooze Interval */}
+              {/* Alarm Cooldown */}
               <View style={styles.sliderContainer}>
-                <Text variant="labelMedium">
-                  Snooze Duration: {alarmSnoozeInterval} minutes
+                <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>
+                  Alarm Cooldown: {alarmCooldown} {alarmCooldown === 1 ? 'minute' : 'minutes'}
                 </Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={1}
-                  maximumValue={30}
-                  value={alarmSnoozeInterval}
-                  onValueChange={setAlarmSnoozeInterval}
+                  maximumValue={60}
+                  value={alarmCooldown}
+                  onValueChange={setAlarmCooldown}
                   step={1}
                 />
-              </View>
-
-              {/* Max Snooze Count */}
-              <View style={styles.sliderContainer}>
-                <Text variant="labelMedium">
-                  Max Snooze Count: {alarmMaxSnooze}
+                <Text variant="bodySmall" style={[styles.helperText, theme.dark && { color: '#B8B8B8' }]}>
+                  Prevents the same alarm from triggering repeatedly within this time period
                 </Text>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={1}
-                  maximumValue={10}
-                  value={alarmMaxSnooze}
-                  onValueChange={setAlarmMaxSnooze}
-                  step={1}
-                />
               </View>
 
               <Text variant="bodySmall" style={[
@@ -1630,7 +1640,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>Options</Text>
           
           <View style={styles.optionContainer}>
-            <Text variant="labelMedium">Repeat</Text>
+            <Text variant="labelMedium" style={theme.dark && { color: '#FFFFFF' }}>Repeat</Text>
             <SegmentedButtons
               value={repeat}
               onValueChange={setRepeat}

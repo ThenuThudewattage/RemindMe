@@ -145,7 +145,7 @@ export default function HistoryScreen() {
 
   const getEventColor = (type: string) => {
     switch (type) {
-      case 'triggered': return '#6750A4'; // Rich purple
+      case 'triggered': return '#6B46C1'; // App purple theme
       case 'snoozed': return '#FF9800'; // Vibrant orange
       case 'completed': return '#4CAF50'; // Green
       case 'dismissed': return '#607D8B'; // Blue-gray
@@ -196,18 +196,21 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, theme.dark ? { backgroundColor: '#0A0A0A' } : { backgroundColor: '#f5f5f5' }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[
+        styles.header,
+        { backgroundColor: '#6B46C1' }, // Purple theme
+      ]}>
         <IconButton 
           icon="arrow-left" 
-          iconColor={theme.colors.onBackground}
+          iconColor="#FFFFFF"
           onPress={() => router.back()} 
         />
         <Text variant="headlineSmall" style={styles.headerTitle}>History</Text>
         <IconButton 
           icon="delete-outline" 
-          iconColor={theme.colors.onBackground}
+          iconColor="#FFFFFF"
           onPress={handleClearHistory}
           disabled={events.length === 0}
         />
@@ -222,7 +225,7 @@ export default function HistoryScreen() {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size="large" color="#6B46C1" />
             <Text variant="bodyMedium" style={[styles.loadingText, theme.dark && { color: '#B8B8B8' }]}>Loading history...</Text>
           </View>
         ) : events.length > 0 ? (
@@ -310,7 +313,7 @@ export default function HistoryScreen() {
                       <IconButton
                         icon="chevron-right"
                         size={22}
-                        iconColor={theme.colors.primary}
+                        iconColor="#6B46C1"
                         style={styles.chevronButton}
                         onPress={() => router.push(`/reminders/detail?id=${event.reminderId}`)}
                       />
@@ -325,12 +328,12 @@ export default function HistoryScreen() {
             <MaterialCommunityIcons 
               name="history" 
               size={64} 
-              color={theme.colors.outline} 
+              color={theme.dark ? 'rgba(107, 70, 193, 0.5)' : '#9C7DC6'} 
             />
-            <Text variant="titleMedium" style={[styles.emptyTitle, { color: theme.colors.outline }]}>
+            <Text variant="titleMedium" style={[styles.emptyTitle, theme.dark ? { color: '#B8B8B8' } : { color: '#666' }]}>
               No History Yet
             </Text>
-            <Text variant="bodyMedium" style={[styles.emptyText, { color: theme.colors.outline }]}>
+            <Text variant="bodyMedium" style={[styles.emptyText, theme.dark ? { color: '#999' } : { color: '#888' }]}>
               Reminder events will appear here as you use the app
             </Text>
           </View>
@@ -348,14 +351,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space(2),
-    paddingVertical: space(1.5),
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5,
   },
   headerTitle: {
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 22,
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 48, // Compensate for left icon
   },
   content: {
     flex: 1,
@@ -374,27 +384,25 @@ const styles = StyleSheet.create({
   dateHeaderLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'rgba(107, 70, 193, 0.15)',
   },
   dateHeader: {
     fontWeight: '600',
-    color: '#666',
+    color: '#6B46C1',
     textTransform: 'uppercase',
     fontSize: 12,
     letterSpacing: 0.5,
   },
   historyCard: {
     marginBottom: space(1.5),
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
-    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   historyContent: {
     flexDirection: 'row',
@@ -404,8 +412,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   eventIconContainer: {
-    borderRadius: 16,
-    padding: 8,
+    borderRadius: 12,
+    padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -435,28 +443,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   statusChip: {
-    height: 35,
-    borderRadius: 14,
+    height: 32,
+    borderRadius: 16,
   },
   statusChipText: {
     color: '#ffffff',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   deletedChip: {
-    height: 35,
-    backgroundColor: '#d32f2f',
-    borderRadius: 13,
+    height: 32,
+    backgroundColor: '#EF5350',
+    borderRadius: 16,
     paddingHorizontal: 2,
   },
   deletedChipText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   notesContainer: {

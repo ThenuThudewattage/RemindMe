@@ -9,7 +9,6 @@ export class ContextEngine {
   private repo: ReminderRepository;
   private notificationService: NotificationService;
   private recentlyTriggered: Map<number, number> = new Map(); // reminderId -> timestamp
-  private readonly TRIGGER_COOLDOWN_MS = 60000; // 1 minute cooldown between triggers
 
   private constructor() {
     this.repo = ReminderRepository.getInstance();
@@ -472,32 +471,38 @@ export class ContextEngine {
 
   private async triggerReminder(reminder: Reminder): Promise<void> {
     try {
-      // Check if this reminder was recently triggered (prevent duplicate triggers)
-      const lastTriggered = this.recentlyTriggered.get(reminder.id);
-      const now = Date.now();
-      
-      if (lastTriggered && (now - lastTriggered) < this.TRIGGER_COOLDOWN_MS) {
-        const remaining = Math.ceil((this.TRIGGER_COOLDOWN_MS - (now - lastTriggered)) / 1000);
-        console.log(`⏸️ Reminder ${reminder.id} in cooldown (${remaining}s remaining)`);
-        return;
-      }
-
       console.log('🔔 Triggering reminder:', reminder.title);
-      
-      // Mark as triggered
-      this.recentlyTriggered.set(reminder.id, now);
       
       // Check if this is an alarm reminder
       if (reminder.alarm?.enabled) {
-        console.log('⏰ Alarm enabled - triggering full alarm notification');
+        // Only apply cooldown to alarms if configured
+        const cooldownMins = reminder.alarm.cooldownMins;
+        
+        if (cooldownMins !== undefined && cooldownMins > 0) {
+          const cooldownMs = cooldownMins * 60 * 1000;
+          const lastTriggered = this.recentlyTriggered.get(reminder.id);
+          const now = Date.now();
+          
+          if (lastTriggered && (now - lastTriggered) < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - (now - lastTriggered)) / 1000);
+            console.log(`⏸️ Alarm ${reminder.id} in cooldown (${remaining}s remaining, cooldown: ${cooldownMins}m)`);
+            return;
+          }
+          
+          // Mark as triggered
+          this.recentlyTriggered.set(reminder.id, now);
+        }
+        
+        const cooldownMsg = cooldownMins ? ` (cooldown: ${cooldownMins}m)` : ' (no cooldown)';
+        console.log(`⏰ Alarm enabled - triggering full alarm notification${cooldownMsg}`);
         // Use AlarmService for alarm reminders
         const AlarmService = (await import('./alarm')).default;
         const alarmService = AlarmService.getInstance();
         await alarmService.initialize();
         await alarmService.triggerAlarm(reminder, 'time');
       } else {
-        console.log('🔔 Regular notification - showing banner');
-        // Use NotificationService for regular reminders
+        console.log('🔔 Regular notification - showing banner (no cooldown)');
+        // Use NotificationService for regular reminders - no cooldown
         await this.notificationService.showImmediateNotification(
           reminder.id,
           reminder.title,
@@ -515,6 +520,17 @@ export class ContextEngine {
       console.log('✅ Reminder triggered successfully:', reminder.id);
     } catch (error) {
       console.error('❌ Error triggering reminder:', error);
+    }
+  }
+
+  /**
+   * Clear cooldown for a specific reminder
+   * Should be called when a reminder is dismissed or deleted
+   */
+  public clearCooldown(reminderId: number): void {
+    if (this.recentlyTriggered.has(reminderId)) {
+      this.recentlyTriggered.delete(reminderId);
+      console.log(`🗑️ Cleared cooldown for reminder ${reminderId}`);
     }
   }
 }
