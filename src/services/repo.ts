@@ -159,8 +159,18 @@ class ReminderRepository {
       // Unregister geofence before deleting
       await this.unregisterGeofence(id.toString());
       
+      // Cancel scheduled notifications
+      await this.cancelScheduledNotification(id);
+      
+      // Clear cooldown from context engine
+      const ContextEngine = (await import('./contextEngine')).ContextEngine;
+      const contextEngine = ContextEngine.getInstance();
+      contextEngine.clearCooldown(id);
+      
       await this.logEvent(id, 'dismissed', { action: 'deleted' });
       await this.dbService.deleteReminder(id);
+      
+      console.log(`🗑️ Reminder ${id} deleted and cooldown cleared`);
     } catch (error) {
       console.error('Failed to delete reminder:', error);
       throw error;
@@ -261,6 +271,12 @@ class ReminderRepository {
       await this.logEvent(id, 'dismissed');
       // Disable the reminder so it doesn't trigger again
       await this.disableReminder(id);
+      
+      // Clear cooldown from context engine
+      const ContextEngine = (await import('./contextEngine')).ContextEngine;
+      const contextEngine = ContextEngine.getInstance();
+      contextEngine.clearCooldown(id);
+      
       console.log(`✅ Reminder ${id} dismissed and disabled`);
     } catch (error) {
       console.error('Failed to dismiss reminder:', error);
@@ -399,6 +415,52 @@ class ReminderRepository {
       }
       // Register new geofence
       await this.registerGeofence(updatedReminder);
+    }
+  }
+
+  /**
+   * Schedule a notification for time-based reminders
+   * This allows notifications to work even when app is closed
+   */
+  private async scheduleTimeBasedNotification(reminder: Reminder): Promise<void> {
+    try {
+      if (!reminder.rule?.time?.start) return;
+      
+      const notificationService = NotificationService.getInstance();
+      const scheduledTime = new Date(reminder.rule.time.start);
+      const now = new Date();
+      
+      // Only schedule if the time is in the future
+      if (scheduledTime > now) {
+        await notificationService.showReminderNotification(
+          reminder.id,
+          reminder.title,
+          reminder.notes || 'Reminder triggered',
+          scheduledTime
+        );
+        console.log(`📅 Scheduled notification for reminder ${reminder.id} at ${scheduledTime.toLocaleString()}`);
+      }
+    } catch (error) {
+      console.error('Failed to schedule notification:', error);
+    }
+  }
+
+  /**
+   * Cancel scheduled notification for a reminder
+   */
+  private async cancelScheduledNotification(reminderId: number): Promise<void> {
+    try {
+      const notificationService = NotificationService.getInstance();
+      // Cancel all notifications for this reminder
+      const scheduled = await notificationService.getScheduledNotifications();
+      for (const notification of scheduled) {
+        if (notification.content.data?.reminderId === reminderId) {
+          await notificationService.cancelNotification(notification.identifier);
+          console.log(`🗑️ Cancelled scheduled notification: ${notification.identifier}`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to cancel scheduled notification:', error);
     }
   }
 
