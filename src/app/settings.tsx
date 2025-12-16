@@ -438,53 +438,91 @@ export default function SettingsScreen() {
             />
             
             {showDatabase && (
-              <View style={{ marginTop: 16 }}>
-                <Text variant="titleSmall" style={{ marginBottom: 8 }}>Reminders Table</Text>
-                <DataTable>
-                  <DataTable.Header>
-                    <DataTable.Title>ID</DataTable.Title>
-                    <DataTable.Title>Title</DataTable.Title>
-                    <DataTable.Title>Enabled</DataTable.Title>
-                    <DataTable.Title>Created</DataTable.Title>
-                  </DataTable.Header>
-                  {dbReminders.map((reminder) => (
-                    <DataTable.Row key={reminder.id}>
-                      <DataTable.Cell>{reminder.id}</DataTable.Cell>
-                      <DataTable.Cell>{reminder.title}</DataTable.Cell>
-                      <DataTable.Cell>{reminder.enabled ? 'Yes' : 'No'}</DataTable.Cell>
-                      <DataTable.Cell>{new Date(reminder.createdAt).toLocaleDateString()}</DataTable.Cell>
-                    </DataTable.Row>
-                  ))}
-                  {dbReminders.length === 0 && (
-                    <DataTable.Row>
-                      <DataTable.Cell>No reminders found</DataTable.Cell>
-                    </DataTable.Row>
-                  )}
-                </DataTable>
-                
-                <Text variant="titleSmall" style={{ marginTop: 16, marginBottom: 8 }}>Events Table</Text>
-                <DataTable>
-                  <DataTable.Header>
-                    <DataTable.Title>ID</DataTable.Title>
-                    <DataTable.Title>Reminder ID</DataTable.Title>
-                    <DataTable.Title>Type</DataTable.Title>
-                    <DataTable.Title>Created</DataTable.Title>
-                  </DataTable.Header>
-                  {dbEvents.map((event) => (
-                    <DataTable.Row key={event.id}>
-                      <DataTable.Cell>{event.id}</DataTable.Cell>
-                      <DataTable.Cell>{event.reminderId}</DataTable.Cell>
-                      <DataTable.Cell>{event.type}</DataTable.Cell>
-                      <DataTable.Cell>{new Date(event.createdAt).toLocaleDateString()}</DataTable.Cell>
-                    </DataTable.Row>
-                  ))}
-                  {dbEvents.length === 0 && (
-                    <DataTable.Row>
-                      <DataTable.Cell>No events found</DataTable.Cell>
-                    </DataTable.Row>
-                  )}
-                </DataTable>
-              </View>
+              <ScrollView horizontal style={{ marginTop: 16 }}>
+                <View>
+                  <Text variant="titleSmall" style={{ marginBottom: 8, fontWeight: '600' }}>
+                    Reminders Table ({dbReminders.length} rows)
+                  </Text>
+                  <DataTable style={{ minWidth: 1800 }}>
+                    <DataTable.Header>
+                      <DataTable.Title style={{ width: 40 }}>ID</DataTable.Title>
+                      <DataTable.Title style={{ width: 150 }}>Title</DataTable.Title>
+                      <DataTable.Title style={{ width: 120 }}>Notes</DataTable.Title>
+                      <DataTable.Title style={{ width: 70 }}>Enabled</DataTable.Title>
+                      <DataTable.Title style={{ width: 350 }}>Rule</DataTable.Title>
+                      <DataTable.Title style={{ width: 300 }}>Location</DataTable.Title>
+                      <DataTable.Title style={{ width: 250 }}>Alarm</DataTable.Title>
+                      <DataTable.Title style={{ width: 140 }}>Created</DataTable.Title>
+                      <DataTable.Title style={{ width: 140 }}>Updated</DataTable.Title>
+                    </DataTable.Header>
+                    {dbReminders.map((reminder) => (
+                      <DataTable.Row key={reminder.id}>
+                        <DataTable.Cell style={{ width: 40 }}>{reminder.id}</DataTable.Cell>
+                        <DataTable.Cell style={{ width: 150 }}>{reminder.title}</DataTable.Cell>
+                        <DataTable.Cell style={{ width: 120 }}>{reminder.notes || '-'}</DataTable.Cell>
+                        <DataTable.Cell style={{ width: 70 }}>{reminder.enabled ? '✅' : '❌'}</DataTable.Cell>
+                        <DataTable.Cell style={{ width: 350 }}>
+                          <Text style={{ fontSize: 11 }}>{JSON.stringify(reminder.rule, null, 1)}</Text>
+                        </DataTable.Cell>
+                        <DataTable.Cell style={{ width: 300 }}>
+                          <Text style={{ fontSize: 11 }}>{reminder.locationTrigger ? JSON.stringify(reminder.locationTrigger, null, 1) : '-'}</Text>
+                        </DataTable.Cell>
+                        <DataTable.Cell style={{ width: 250 }}>
+                          <Text style={{ fontSize: 11 }}>{reminder.alarm ? JSON.stringify(reminder.alarm, null, 1) : '-'}</Text>
+                        </DataTable.Cell>
+                        <DataTable.Cell style={{ width: 140 }}>
+                          <Text style={{ fontSize: 11 }}>{new Date(reminder.createdAt).toLocaleString()}</Text>
+                        </DataTable.Cell>
+                        <DataTable.Cell style={{ width: 140 }}>
+                          <Text style={{ fontSize: 11 }}>{new Date(reminder.updatedAt).toLocaleString()}</Text>
+                        </DataTable.Cell>
+                      </DataTable.Row>
+                    ))}
+                    {dbReminders.length === 0 && (
+                      <DataTable.Row>
+                        <DataTable.Cell>No reminders found</DataTable.Cell>
+                      </DataTable.Row>
+                    )}
+                  </DataTable>
+                  
+                  <Divider style={{ marginVertical: 24 }} />
+                  
+                  <Text variant="titleSmall" style={{ marginBottom: 8, fontWeight: '600' }}>
+                    Events Table ({dbEvents.length} rows)
+                  </Text>
+                  <DataTable style={{ minWidth: 1200 }}>
+                    <DataTable.Header>
+                      <DataTable.Title style={{ width: 40 }}>ID</DataTable.Title>
+                      <DataTable.Title style={{ width: 80 }}>Reminder ID</DataTable.Title>
+                      <DataTable.Title style={{ width: 150 }}>Title</DataTable.Title>
+                      <DataTable.Title style={{ width: 100 }}>Type</DataTable.Title>
+                      <DataTable.Title style={{ width: 400 }}>Metadata</DataTable.Title>
+                      <DataTable.Title style={{ width: 160 }}>Created</DataTable.Title>
+                    </DataTable.Header>
+                    {dbEvents.map((event) => (
+                      <DataTable.Row key={event.id}>
+                        <DataTable.Cell style={{ width: 40 }}>{event.id}</DataTable.Cell>
+                        <DataTable.Cell style={{ width: 80 }}>{event.reminderId}</DataTable.Cell>
+                        <DataTable.Cell style={{ width: 150 }}>
+                          <Text style={{ fontSize: 11 }}>{event.reminderTitle || '-'}</Text>
+                        </DataTable.Cell>
+                        <DataTable.Cell style={{ width: 100 }}>{event.type}</DataTable.Cell>
+                        <DataTable.Cell style={{ width: 400 }}>
+                          <Text style={{ fontSize: 11 }}>{event.payload ? JSON.stringify(event.payload, null, 1) : '-'}</Text>
+                        </DataTable.Cell>
+                        <DataTable.Cell style={{ width: 160 }}>
+                          <Text style={{ fontSize: 11 }}>{new Date(event.createdAt).toLocaleString()}</Text>
+                        </DataTable.Cell>
+                      </DataTable.Row>
+                    ))}
+                    {dbEvents.length === 0 && (
+                      <DataTable.Row>
+                        <DataTable.Cell>No events found</DataTable.Cell>
+                      </DataTable.Row>
+                    )}
+                  </DataTable>
+                </View>
+              </ScrollView>
             )}
           </Card.Content>
         </Card>

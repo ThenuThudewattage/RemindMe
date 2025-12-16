@@ -52,7 +52,7 @@ export default function RemindersListScreen() {
   );
 
   useEffect(() => {
-    filterReminders();
+    filterReminders().catch(err => console.error('Error filtering reminders:', err));
   }, [searchQuery, reminders, activeFilter]);
 
   const loadReminders = async () => {
@@ -112,11 +112,31 @@ export default function RemindersListScreen() {
     }
   };
 
-  const filterReminders = () => {
+  const filterReminders = async () => {
     let filtered = [...reminders];
 
-    // Show only active reminders by default
-    filtered = filtered.filter(reminder => reminder.enabled);
+    // Show only active reminders that haven't been triggered yet
+    const activeReminders = await Promise.all(
+      filtered.map(async (reminder) => {
+        if (!reminder.enabled) return null;
+        
+        // Check if reminder has been triggered
+        const events = await repo.getReminderEvents(reminder.id);
+        const sortedEvents = events.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        const lastEvent = sortedEvents[0];
+        
+        // If last event is 'triggered' or 'snoozed', don't show in active list
+        if (lastEvent && (lastEvent.type === 'triggered' || lastEvent.type === 'snoozed')) {
+          return null;
+        }
+        
+        return reminder;
+      })
+    );
+    
+    filtered = activeReminders.filter((r): r is Reminder => r !== null);
 
     // Apply category filter
     if (activeFilter === 'today') {

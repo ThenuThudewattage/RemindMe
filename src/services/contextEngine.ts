@@ -251,11 +251,11 @@ export class ContextEngine {
     batteryState: BatteryState | null
   ): Promise<boolean> {
     try {
-      console.log(`  📋 Checking all conditions for: "${reminder.title}"`);
-      
-      // Check if reminder is in cooldown
-      if (await this.isInCooldown(reminder)) {
-        console.log(`    ❌ In cooldown period`);
+      console.log(`  📋 Checking all conditions for: "${reminder.title}"`);      
+
+      // Check if reminder has already been triggered and not yet acted upon
+      if (await this.hasUnresolvedTrigger(reminder)) {
+        console.log(`    ❌ Already triggered - waiting for user action`);
         return false;
       }
 
@@ -271,8 +271,11 @@ export class ContextEngine {
         return false;
       }
 
+      let hasActiveRules = false;
+
       // Check time condition
       if (reminder.rule.time) {
+        hasActiveRules = true;
         console.log(`    ⏰ Checking time condition...`);
         if (!this.checkTimeCondition(reminder.rule.time)) {
           return false;
@@ -283,7 +286,19 @@ export class ContextEngine {
 
       // Check location condition
       if (reminder.rule.location) {
+        hasActiveRules = true;
         console.log(`    📍 Checking location condition...`);
+        
+        // If geofencing is enabled, we defer to the GeofencingService (background task)
+        // instead of checking it here in the foreground loop.
+        // This prevents double-triggering and ensures consistent behavior.
+        if (reminder.locationTrigger?.enabled) {
+           console.log(`    📍 Handled by GeofencingService (background) - skipping foreground check`);
+           // We return false here because this engine shouldn't trigger it.
+           // The GeofencingService will trigger it via its own event path.
+           return false;
+        }
+
         if (!this.checkLocationCondition(reminder.rule.location, location)) {
           console.log(`    ❌ Location condition not met`);
           return false;
@@ -295,6 +310,7 @@ export class ContextEngine {
 
       // Check battery condition
       if (reminder.rule.battery) {
+        hasActiveRules = true;
         console.log(`    🔋 Checking battery condition...`);
         if (!this.checkBatteryCondition(reminder.rule.battery, batteryState)) {
           console.log(`    ❌ Battery condition not met`);
@@ -305,6 +321,15 @@ export class ContextEngine {
         console.log(`    🔋 No battery condition`);
       }
 
+      if (!hasActiveRules) {
+        if (reminder.locationTrigger?.enabled) {
+           console.log(`    📍 Handled by GeofencingService (background)`);
+           return false;
+        }
+        console.log(`    ⚠️ No active rules found`);
+        return false;
+      }
+
       console.log(`  ✅ ALL CONDITIONS MET!`);
       return true;
     } catch (error) {
@@ -313,22 +338,37 @@ export class ContextEngine {
     }
   }
 
-  private async isInCooldown(reminder: Reminder): Promise<boolean> {
+  private async hasUnresolvedTrigger(reminder: Reminder): Promise<boolean> {
     try {
-      const cooldownMins = reminder.rule.options?.cooldownMins;
-      if (!cooldownMins) return false;
-
       const events = await this.repo.getReminderEvents(reminder.id);
-      const lastTriggered = events.find(e => e.type === 'triggered');
       
-      if (!lastTriggered) return false;
+      // Get the most recent event
+      const sortedEvents = events.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      const lastEvent = sortedEvents[0];
+      
+      if (!lastEvent) return false;
 
-      const cooldownUntil = new Date(lastTriggered.createdAt);
-      cooldownUntil.setMinutes(cooldownUntil.getMinutes() + cooldownMins);
-      
-      return new Date() < cooldownUntil;
+      // If last event was triggered, we're waiting for user action (snooze/dismiss/done)
+      if (lastEvent.type === 'triggered') {
+        return true;
+      }
+
+      // If last event was snoozed, check if snooze time has passed
+      if (lastEvent.type === 'snoozed') {
+        const payload = lastEvent.payload as any;
+        const snoozedUntil = payload?.snoozedUntil;
+        if (snoozedUntil) {
+          const snoozeExpired = new Date() >= new Date(snoozedUntil);
+          return !snoozeExpired; // Return true if still in snooze period
+        }
+      }
+
+      // If last event was dismissed, completed, or expired, can trigger again
+      return false;
     } catch (error) {
-      console.error('Error checking cooldown:', error);
+      console.error('Error checking trigger state:', error);
       return false;
     }
   }
@@ -394,17 +434,9 @@ export class ContextEngine {
       
       if (timeRule.end) {
         const endTime = new Date(timeRule.end);
-        const startTime = timeRule.start ? new Date(timeRule.start) : endTime;
         
         console.log(`       End time raw: "${timeRule.end}"`);
         console.log(`       End time parsed: ${endTime.toLocaleString()} (${endTime.getTime()})`);
-        
-        // If start and end are the same (single-time reminder), add 5 minute buffer
-        if (startTime.getTime() === endTime.getTime()) {
-          endTime.setMinutes(endTime.getMinutes() + 5);
-          console.log(`       End time (with 5min buffer): ${endTime.toLocaleString()} (${endTime.getTime()})`);
-          console.log(`       Buffer difference: ${(endTime.getTime() - now.getTime()) / 1000} seconds`);
-        }
         
         if (now > endTime) {
           console.log(`    ❌ Too late (current ${now.getTime()} > end ${endTime.getTime()})`);
@@ -475,33 +507,14 @@ export class ContextEngine {
       
       // Check if this is an alarm reminder
       if (reminder.alarm?.enabled) {
-        // Only apply cooldown to alarms if configured
-        const cooldownMins = reminder.alarm.cooldownMins;
-        
-        if (cooldownMins !== undefined && cooldownMins > 0) {
-          const cooldownMs = cooldownMins * 60 * 1000;
-          const lastTriggered = this.recentlyTriggered.get(reminder.id);
-          const now = Date.now();
-          
-          if (lastTriggered && (now - lastTriggered) < cooldownMs) {
-            const remaining = Math.ceil((cooldownMs - (now - lastTriggered)) / 1000);
-            console.log(`⏸️ Alarm ${reminder.id} in cooldown (${remaining}s remaining, cooldown: ${cooldownMins}m)`);
-            return;
-          }
-          
-          // Mark as triggered
-          this.recentlyTriggered.set(reminder.id, now);
-        }
-        
-        const cooldownMsg = cooldownMins ? ` (cooldown: ${cooldownMins}m)` : ' (no cooldown)';
-        console.log(`⏰ Alarm enabled - triggering full alarm notification${cooldownMsg}`);
+        console.log('⏰ Alarm enabled - triggering full alarm notification');
         // Use AlarmService for alarm reminders
         const AlarmService = (await import('./alarm')).default;
         const alarmService = AlarmService.getInstance();
         await alarmService.initialize();
         await alarmService.triggerAlarm(reminder, 'time');
       } else {
-        console.log('🔔 Regular notification - showing banner (no cooldown)');
+        console.log('🔔 Regular notification - showing banner');
         // Use NotificationService for regular reminders - no cooldown
         await this.notificationService.showImmediateNotification(
           reminder.id,
@@ -520,17 +533,6 @@ export class ContextEngine {
       console.log('✅ Reminder triggered successfully:', reminder.id);
     } catch (error) {
       console.error('❌ Error triggering reminder:', error);
-    }
-  }
-
-  /**
-   * Clear cooldown for a specific reminder
-   * Should be called when a reminder is dismissed or deleted
-   */
-  public clearCooldown(reminderId: number): void {
-    if (this.recentlyTriggered.has(reminderId)) {
-      this.recentlyTriggered.delete(reminderId);
-      console.log(`🗑️ Cleared cooldown for reminder ${reminderId}`);
     }
   }
 }

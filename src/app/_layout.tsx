@@ -20,13 +20,29 @@ function InnerTabs() {
   const { theme, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
+  // Ensure status bar stays purple on every tab change
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      setStatusBarBackgroundColor('#6750A4', false);
+    }
+
+    // Set up interval to force status bar color every second as fallback
+    const interval = setInterval(() => {
+      if (Platform.OS === 'android') {
+        setStatusBarBackgroundColor('#6750A4', false);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarStyle: {
-          backgroundColor: isDark ? '#0A0A0A' : theme.colors.surface,
+          backgroundColor: isDark ? '#000000' : '#FFFFFF',
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom ? insets.bottom + 10 : 10,
           paddingTop: 6,
@@ -105,11 +121,11 @@ function RootTabsContent() {
   const ensureStatusBar = async () => {
     setStatusBarStyle('light');
     if (Platform.OS === 'android') {
-      setStatusBarBackgroundColor(isDark ? '#4a3969' : BRAND.purple, false);
+      setStatusBarBackgroundColor('#6750A4', false);
       
-      // Set navigation bar color
+      // Set navigation bar color - black in dark mode to match tab bar
       try {
-        const navColor = isDark ? '#0A0A0A' : '#FFFFFF';
+        const navColor = isDark ? '#000000' : '#FFFFFF';
         console.log('Setting navigation bar to:', navColor, 'isDark:', isDark);
         await NavigationBar.setVisibilityAsync('visible');
         await NavigationBar.setBackgroundColorAsync(navColor);
@@ -245,7 +261,7 @@ function RootTabsContent() {
     return (
       <SafeAreaProvider>
         <PaperProvider theme={theme}>
-          <StatusBar style="light" backgroundColor={isDark ? '#4a3969' : BRAND.purple} />
+          <StatusBar style="light" backgroundColor="#6750A4" />
           <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', backgroundColor: theme.colors.background }}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
@@ -257,7 +273,7 @@ function RootTabsContent() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <StatusBar style="light" backgroundColor={isDark ? '#4a3969' : BRAND.purple} />
+        <StatusBar style="light" backgroundColor="#6750A4" />
         <InnerTabs />
       </PaperProvider>
     </SafeAreaProvider>
