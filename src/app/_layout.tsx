@@ -8,6 +8,8 @@ import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-
 import * as NavigationBar from 'expo-navigation-bar';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { app } from '../config/firebase';
 import DatabaseService from '../services/db';
 import BackgroundService from '../services/background';
 import { BRAND } from '../theme';
@@ -126,6 +128,25 @@ function RootTabsContent() {
         await dbService.initialize();
         console.log('Database initialized successfully');
         
+        // Initialize Firebase Authentication
+        console.log('Initializing Firebase Authentication...');
+        const auth = getAuth(app);
+        
+        // Sign in anonymously for Firebase Cloud Functions
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            console.log('User authenticated:', user.uid);
+          } else {
+            console.log('Signing in anonymously...');
+            signInAnonymously(auth)
+              .then(() => {
+                console.log('Anonymous sign-in successful');
+              })
+              .catch((error) => {
+                console.error('Anonymous sign-in error:', error);
+              });
+          }
+        });
         // Initialize background service after database is ready
         console.log('Starting background service initialization...');
         const backgroundService = BackgroundService.getInstance();
