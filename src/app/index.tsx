@@ -370,8 +370,8 @@ export default function HomeScreen() {
           </Card>
         </View>
 
-        <Card mode="outlined" style={[
-          { marginTop: space(2) },
+        <Card mode="elevated" style={[
+          { marginTop: space(2), borderRadius: 12, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 3 },
           !theme.dark && { backgroundColor: '#FFFFFF' },
           theme.dark && {
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -380,20 +380,29 @@ export default function HomeScreen() {
           }
         ]}>
           <Card.Content>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text variant="titleSmall" style={theme.dark && { color: '#FFFFFF' }}>History</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(1) }}>
+              <Text variant="titleMedium" style={theme.dark && { color: '#FFFFFF' }}>Recent History</Text>
               <Button mode="text" compact onPress={goHistory} textColor={theme.dark ? '#B8A9D4' : BRAND.purple}>
                 View All
               </Button>
             </View>
             {recentEvents.length > 0 ? (
               recentEvents.map((event, index) => (
-                <Text key={event.id || index} variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>
-                  {getEventText(event)}
-                </Text>
+                <View key={event.id || index} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: space(1), gap: space(1.5) }}>
+                  <Avatar.Icon 
+                    size={32} 
+                    icon={getEventIcon(event.type)} 
+                    style={[
+                      { backgroundColor: 'rgba(139, 115, 200, 0.15)' },
+                    ]} 
+                  />
+                  <Text variant="bodyMedium" style={[{ flex: 1 }, theme.dark && { color: '#E0E0E0' }]}>
+                    {getEventText(event)}
+                  </Text>
+                </View>
               ))
             ) : (
-              <Text variant="bodySmall" style={styles.muted}>No recent activity</Text>
+              <Text variant="bodySmall" style={[styles.muted, theme.dark && { color: '#B8B8B8' }]}>No recent activity</Text>
             )}
           </Card.Content>
         </Card>

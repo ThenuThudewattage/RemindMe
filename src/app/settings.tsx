@@ -249,7 +249,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         
         {/* Permissions Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Permissions
@@ -288,7 +288,7 @@ export default function SettingsScreen() {
                 Request Permissions
               </Button>
               <Button
-                mode="outlined"
+                mode="elevated"
                 onPress={handleOpenAppSettings}
                 style={styles.permissionButton}
               >
@@ -299,7 +299,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Appearance Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Appearance
@@ -340,7 +340,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Background Tasks Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Background Processing
@@ -368,7 +368,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Statistics Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Statistics
@@ -406,7 +406,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Maintenance Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Maintenance
@@ -423,7 +423,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Database Viewer Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Database Viewer
@@ -490,7 +490,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Debug Actions Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Debug Actions
@@ -512,7 +512,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* About Card */}
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               About RemindMe+
@@ -566,6 +566,12 @@ const styles = StyleSheet.create({
   card: {
     margin: 16,
     marginBottom: 8,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
   },
   sectionTitle: {
     marginBottom: 12,

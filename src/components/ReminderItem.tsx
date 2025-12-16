@@ -78,7 +78,7 @@ export const ReminderItem: React.FC<ReminderItemProps> = ({
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.1)',
       },
-    ]} mode="outlined">
+    ]} mode="elevated">
       <Card.Content>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
@@ -158,6 +158,12 @@ const styles = StyleSheet.create({
   card: {
     marginVertical: 4,
     marginHorizontal: 16,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
   },
   disabledCard: {
     opacity: 0.6,
