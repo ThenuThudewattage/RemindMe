@@ -111,7 +111,12 @@ export default function ReminderDetailScreen() {
       }
     }
     
-    if (reminder.rule.location) {
+    if (reminder.locationTrigger?.enabled) {
+      const { label, latitude, longitude, radius, mode } = reminder.locationTrigger;
+      const displayLabel = label?.trim() ? label : `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      details.push(`Location: ${displayLabel}`);
+      details.push(`Coords: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} • Radius: ${radius}m • Mode: ${mode}`);
+    } else if (reminder.rule.location) {
       details.push(`Location: ${reminder.rule.location.lat.toFixed(6)}, ${reminder.rule.location.lon.toFixed(6)}`);
       details.push(`Radius: ${reminder.rule.location.radius}m`);
     }

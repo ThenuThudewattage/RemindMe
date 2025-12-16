@@ -271,8 +271,11 @@ export class ContextEngine {
         return false;
       }
 
+      let hasActiveRules = false;
+
       // Check time condition
       if (reminder.rule.time) {
+        hasActiveRules = true;
         console.log(`    ⏰ Checking time condition...`);
         if (!this.checkTimeCondition(reminder.rule.time)) {
           return false;
@@ -283,7 +286,19 @@ export class ContextEngine {
 
       // Check location condition
       if (reminder.rule.location) {
+        hasActiveRules = true;
         console.log(`    📍 Checking location condition...`);
+        
+        // If geofencing is enabled, we defer to the GeofencingService (background task)
+        // instead of checking it here in the foreground loop.
+        // This prevents double-triggering and ensures consistent behavior.
+        if (reminder.locationTrigger?.enabled) {
+           console.log(`    📍 Handled by GeofencingService (background) - skipping foreground check`);
+           // We return false here because this engine shouldn't trigger it.
+           // The GeofencingService will trigger it via its own event path.
+           return false;
+        }
+
         if (!this.checkLocationCondition(reminder.rule.location, location)) {
           console.log(`    ❌ Location condition not met`);
           return false;
@@ -295,6 +310,7 @@ export class ContextEngine {
 
       // Check battery condition
       if (reminder.rule.battery) {
+        hasActiveRules = true;
         console.log(`    🔋 Checking battery condition...`);
         if (!this.checkBatteryCondition(reminder.rule.battery, batteryState)) {
           console.log(`    ❌ Battery condition not met`);
@@ -303,6 +319,15 @@ export class ContextEngine {
         console.log(`    ✅ Battery condition met`);
       } else {
         console.log(`    🔋 No battery condition`);
+      }
+
+      if (!hasActiveRules) {
+        if (reminder.locationTrigger?.enabled) {
+           console.log(`    📍 Handled by GeofencingService (background)`);
+           return false;
+        }
+        console.log(`    ⚠️ No active rules found`);
+        return false;
       }
 
       console.log(`  ✅ ALL CONDITIONS MET!`);

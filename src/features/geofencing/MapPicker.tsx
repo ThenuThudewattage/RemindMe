@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { View, StyleSheet, Alert, Dimensions, Keyboard, Platform, StatusBar, FlatList, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Alert, Dimensions, Keyboard, Platform, StatusBar, FlatList, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
 import { 
   Text, 
   Button,
@@ -441,37 +441,42 @@ export const MapPicker: React.FC<MapPickerProps> = ({
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Map with Search Overlay */}
-      <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          region={region}
-          onPress={onMapPress}
-          showsUserLocation
-          showsMyLocationButton={false}
-        >
-          <Marker
-            coordinate={markerCoordinate}
-            draggable
-            onDragEnd={onMarkerDragEnd}
-            title="Reminder Location"
-            description={label}
-          />
-          <Circle
-            center={markerCoordinate}
-            radius={radius}
-            strokeColor={`${theme.colors.primary}60`}
-            fillColor={`${theme.colors.primary}10`}
-            strokeWidth={1.5}
-          />
-        </MapView>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      enabled={false} // Disable KeyboardAvoidingView - we want keyboard to overlay content
+    >
+      {/* Full-screen Map */}
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFillObject}
+        region={region}
+        onPress={onMapPress}
+        showsUserLocation
+        showsMyLocationButton={false}
+      >
+        <Marker
+          coordinate={markerCoordinate}
+          draggable
+          onDragEnd={onMarkerDragEnd}
+          title="Reminder Location"
+          description={label}
+        />
+        <Circle
+          center={markerCoordinate}
+          radius={radius}
+          strokeColor={`${theme.colors.primary}60`}
+          fillColor={`${theme.colors.primary}10`}
+          strokeWidth={1.5}
+        />
+      </MapView>
 
-        {/* Search Overlay */}
-        <View style={[styles.searchOverlay, { top: Math.max(insets.top, 16) + 10 }]}>
-          {USE_BACKEND_PROXY ? (
-            <View style={styles.autocompleteContainer}>
+      {/* Search Overlay - fixed at top */}
+      <View style={[styles.searchOverlay, { 
+        top: Math.max(insets.top, 16) + 10,
+      }]}>
+        {USE_BACKEND_PROXY ? (
+          <View style={styles.autocompleteContainer}>
               <View style={styles.textInputContainer}>
                 <View style={styles.searchIconContainer}>
                   <IconButton icon="magnify" size={20} />
@@ -585,33 +590,25 @@ export const MapPicker: React.FC<MapPickerProps> = ({
               </Text>
             </View>
           )}
-          
-          {/* Backend Status Info (Dev only - remove in production) */}
-          {__DEV__ && USE_BACKEND_PROXY && (
-            <View style={styles.backendInfoBanner}>
-              <Text variant="bodySmall" style={styles.backendInfoText}>
-                🔒 Using secure Firebase backend proxy
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* Current Location Button */}
-        <IconButton
-          icon="crosshairs-gps"
-          mode="contained"
-          onPress={getCurrentLocation}
-          disabled={locationLoading}
-          style={[styles.locationButton, { top: Math.max(insets.top, 16) + 80 }]}
-          containerColor={theme.colors.surface}
-          iconColor={theme.colors.primary}
-          size={24}
-        />
-      </View>
+      {/* Current Location Button */}
+      <IconButton
+        icon="crosshairs-gps"
+        mode="contained"
+        onPress={getCurrentLocation}
+        disabled={locationLoading}
+        style={[styles.locationButton, { top: Math.max(insets.top, 16) + 80 }]}
+        containerColor={theme.colors.surface}
+        iconColor={theme.colors.primary}
+        size={24}
+      />
 
+      {/* Settings Card - positioned at bottom, will be covered by keyboard */}
       <Card 
         style={[
           styles.settingsCard,
+          { bottom: insets.bottom },
           theme.dark && {
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
             borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -667,25 +664,26 @@ export const MapPicker: React.FC<MapPickerProps> = ({
             />
           </View>
         </Card.Content>
+        <Card.Content>
+          <View style={styles.actions}>
+            <Button
+              mode="outlined"
+              onPress={onCancel}
+              style={styles.button}
+            >
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleSave}
+              loading={savingLocation}
+              style={styles.button}
+            >
+              Save Location
+            </Button>
+          </View>
+        </Card.Content>
       </Card>
-
-      <View style={styles.actions}>
-        <Button
-          mode="outlined"
-          onPress={onCancel}
-          style={styles.button}
-        >
-          Cancel
-        </Button>
-        <Button
-          mode="contained"
-          onPress={handleSave}
-          loading={savingLocation}
-          style={styles.button}
-        >
-          Save Location
-        </Button>
-      </View>
 
       <Snackbar
         visible={snackbarVisible}
@@ -694,7 +692,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
       >
         {snackbarMessage}
       </Snackbar>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -709,13 +707,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     opacity: 0.7,
-  },
-  mapContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
   },
   // Google Places Autocomplete Overlay Styles
   searchOverlay: {
@@ -762,8 +753,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    maxHeight: 300,
-    zIndex: 1001, // Ensure list is above everything
+    maxHeight: 400, // Allow more space - can overlay settings at bottom
+    zIndex: 1001, // Ensure list is above everything including settings card
   },
   row: {
     padding: 13,
@@ -827,8 +818,11 @@ const styles = StyleSheet.create({
     zIndex: 900,
   },
   settingsCard: {
-    margin: 16,
-    marginBottom: 8,
+    position: 'absolute' as const,
+    left: 16,
+    right: 16,
+    bottom: 0,
+    zIndex: 500, // Lower than search overlay so predictions can cover it
   },
   settingRow: {
     marginBottom: 16,
@@ -850,7 +844,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    padding: 16,
     gap: 12,
   },
   button: {

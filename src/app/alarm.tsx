@@ -85,9 +85,9 @@ export default function AlarmScreen() {
   useEffect(() => {
     const setAlarmColors = async () => {
       if (Platform.OS === 'android') {
-        setStatusBarBackgroundColor('#667eea', false);
+        setStatusBarBackgroundColor('#4a5fd9', false);
         try {
-          await NavigationBar.setBackgroundColorAsync('#667eea');
+          await NavigationBar.setBackgroundColorAsync('#4a5fd9');
           await NavigationBar.setButtonStyleAsync('light');
         } catch (error) {
           console.log('Error setting alarm colors:', error);
@@ -202,7 +202,8 @@ export default function AlarmScreen() {
     try {
       Vibration.vibrate(100);
       await snoozeAlarm(interval || 10);
-      router.back();
+      // Use replace instead of back to avoid navigation error when opened from notification
+      router.replace('/');
     } catch (error) {
       console.error('Failed to snooze alarm:', error);
     }
@@ -212,7 +213,8 @@ export default function AlarmScreen() {
     try {
       Vibration.vibrate(100);
       await dismissAlarm();
-      router.back();
+      // Use replace instead of back to avoid navigation error when opened from notification
+      router.replace('/');
     } catch (error) {
       console.error('Failed to dismiss alarm:', error);
     }
@@ -253,7 +255,7 @@ export default function AlarmScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={['#667eea', '#764ba2', '#6750A4', '#5f72e4', '#4facfe']}
+          colors={['#4a5fd9', '#764ba2', '#6750A4', '#3d5afe', '#2962ff']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
@@ -275,7 +277,7 @@ export default function AlarmScreen() {
       ]}
     >
       <LinearGradient
-        colors={['#667eea', '#764ba2', '#6750A4', '#5f72e4', '#4facfe']}
+        colors={['#4a5fd9', '#764ba2', '#6750A4', '#3d5afe', '#2962ff']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}

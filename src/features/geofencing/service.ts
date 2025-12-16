@@ -18,6 +18,7 @@ class GeofencingService {
   private static instance: GeofencingService;
   private isInitialized: boolean = false;
   private registeredGeofences: Map<string, GeofenceRegisterOptions> = new Map();
+  private pendingInitialSync: Set<string> = new Set();
   private db: DatabaseService;
   private notificationService: NotificationService;
 
@@ -63,16 +64,38 @@ class GeofencingService {
         throw new Error('Background location permission not granted');
       }
 
+      // Get current location to establish initial state
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const distance = this.calculateDistance(
+        currentLocation.coords.latitude,
+        currentLocation.coords.longitude,
+        options.latitude,
+        options.longitude
+      );
+
+      const isCurrentlyInside = distance <= options.radius;
+      
+      // Initialize the geofence status with current state
+      // This prevents immediate triggering - we only trigger on STATE CHANGE
+      const initialEvent = isCurrentlyInside ? 'enter' : 'exit';
+      await this.db.setGeofenceStatus(reminderId, true, initialEvent);
+
+      console.log(
+        `Geofence registered for reminder ${reminderId}: ` +
+        `Current distance: ${Math.round(distance)}m, ` +
+        `Inside radius: ${isCurrentlyInside}, ` +
+        `Initial state: ${initialEvent}`
+      );
+
       // Store geofence configuration
       this.registeredGeofences.set(reminderId, options);
-
-      // Update database status
-      await this.db.setGeofenceStatus(reminderId, true);
+      this.pendingInitialSync.add(reminderId);
 
       // Start location updates if not already running
       await this.startLocationUpdates();
-
-      console.log(`Geofence registered for reminder ${reminderId}:`, options);
     } catch (error) {
       console.error(`Failed to register geofence for reminder ${reminderId}:`, error);
       throw error;
@@ -83,6 +106,7 @@ class GeofencingService {
     try {
       // Remove from registered geofences
       this.registeredGeofences.delete(reminderId);
+      this.pendingInitialSync.delete(reminderId);
 
       // Update database status
       await this.db.setGeofenceStatus(reminderId, false);
@@ -321,13 +345,30 @@ class GeofencingService {
         const status = await this.db.getGeofenceStatus(reminderId);
         const wasInside = status?.lastEvent === 'enter';
 
-        // Determine if we should fire an event
+        if (this.pendingInitialSync.has(reminderId)) {
+          const baselineEvent: 'enter' | 'exit' = isInside ? 'enter' : 'exit';
+          await this.db.setGeofenceStatus(reminderId, true, baselineEvent);
+          this.pendingInitialSync.delete(reminderId);
+          console.log(
+            `Reminder ${reminderId}: initial sync baseline recorded as ${baselineEvent} (distance: ${Math.round(distance)}m)`
+          );
+          continue;
+        }
+
+        // Determine if we should fire an event based on state transition
+        // - ENTER event: User moves from outside -> inside the radius
+        // - EXIT event: User moves from inside -> outside the radius
+        // This ensures we only trigger once per crossing, not continuously while inside/outside
         let eventType: 'enter' | 'exit' | null = null;
 
         if (isInside && !wasInside) {
+          // User just entered the geofence radius
           eventType = 'enter';
+          console.log(`Reminder ${reminderId}: ENTER detected (distance: ${Math.round(distance)}m)`);
         } else if (!isInside && wasInside) {
+          // User just exited the geofence radius  
           eventType = 'exit';
+          console.log(`Reminder ${reminderId}: EXIT detected (distance: ${Math.round(distance)}m)`);
         }
 
         if (eventType) {

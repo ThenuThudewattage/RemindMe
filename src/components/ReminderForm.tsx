@@ -106,7 +106,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
   // Location condition state - REMOVED (replaced by location trigger/geofencing)
   
   // Location trigger state (geofencing)
-  const [hasLocationTrigger, setHasLocationTrigger] = useState(!!(initialValues?.locationTrigger?.enabled));
+  const [hasLocationTrigger, setHasLocationTrigger] = useState(!!(initialValues?.locationTrigger?.enabled || initialValues?.rule?.location));
   const [locationTrigger, setLocationTrigger] = useState<Omit<LocationTrigger, 'id' | 'enabled'> | null>(
     initialValues?.locationTrigger ? {
       latitude: initialValues.locationTrigger.latitude,
@@ -114,7 +114,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       radius: initialValues.locationTrigger.radius,
       mode: initialValues.locationTrigger.mode,
       label: initialValues.locationTrigger.label,
-    } : null
+    } : (initialValues?.rule?.location ? {
+      latitude: initialValues.rule.location.lat,
+      longitude: initialValues.rule.location.lon,
+      radius: initialValues.rule.location.radius,
+      mode: 'enter', // Default for legacy location rules
+      label: undefined,
+    } : null)
   );
   
   // Battery condition state
@@ -247,7 +253,14 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       }
     }
 
-    // Location condition - REMOVED (replaced by location trigger/geofencing)
+    // Location condition - Sync with location trigger
+    if (hasLocationTrigger && locationTrigger) {
+      newRule.location = {
+        lat: locationTrigger.latitude,
+        lon: locationTrigger.longitude,
+        radius: locationTrigger.radius,
+      };
+    }
 
     // Battery condition
     if (hasBatteryCondition) {
@@ -1521,7 +1534,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         <Card.Content>
           <View style={styles.sectionHeader}>
             <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
-              {preset === 'location' ? '� Wake Me There' : preset === 'time' ? '⏰ Remind Me Later' : ' Alarm Settings'}
+              {preset === 'location' ? 'Notification type' : preset === 'time' ? 'Notification type' : ' Alarm Settings'}
             </Text>
           </View>
           
@@ -1619,7 +1632,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                   color: '#FFB74D',
                 },
               ]}>
-                ⚠️ For best results, ensure the app has permission to run in the background and disable battery optimization for this app.
+                 For best results, ensure the app has permission to run in the background.
               </Text>
             </View>
           )}
