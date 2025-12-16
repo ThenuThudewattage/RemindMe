@@ -414,6 +414,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     lineHeight: 20,
   },
+  detailText: {
+    marginBottom: 8,
+  },
   noConditions: {
     opacity: 0.7,
     fontStyle: 'italic',
