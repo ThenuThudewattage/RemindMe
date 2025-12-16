@@ -60,11 +60,31 @@ export default function HistoryScreen() {
   const loadHistory = async () => {
     try {
       const repo = ReminderRepository.getInstance();
-      const recentEvents = await repo.getRecentEvents(50); // Get last 50 events
+      const recentEvents = await repo.getRecentEvents(100); // Get more events to group properly
       
-      // Enrich events with reminder details
+      // Group events by reminder ID and get the latest event for each
+      const eventsByReminder = new Map<number, ReminderEvent>();
+      
+      // Sort by creation time (newest first)
+      const sortedEvents = [...recentEvents].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      // Keep only the latest event for each reminder (skip 'created' and 'updated' events)
+      for (const event of sortedEvents) {
+        if (event.type === 'created' || event.type === 'updated') {
+          continue; // Skip non-actionable events
+        }
+        
+        if (!eventsByReminder.has(event.reminderId)) {
+          eventsByReminder.set(event.reminderId, event);
+        }
+      }
+      
+      // Convert back to array and enrich with reminder details
+      const latestEvents = Array.from(eventsByReminder.values());
       const enrichedEvents = await Promise.all(
-        recentEvents.map(async (event) => {
+        latestEvents.map(async (event) => {
           const reminder = await repo.getReminder(event.reminderId);
           const isDeleted = !reminder;
           
@@ -76,6 +96,11 @@ export default function HistoryScreen() {
             conditions: reminder ? formatRuleDescription(reminder) : undefined
           };
         })
+      );
+      
+      // Sort by creation time again (newest first)
+      enrichedEvents.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       
       setEvents(enrichedEvents);

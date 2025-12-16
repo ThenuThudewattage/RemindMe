@@ -241,6 +241,16 @@ class NotificationService {
 
   private async setupNotificationListeners(): Promise<void> {
     try {
+      // Remove existing listeners to prevent duplicates
+      if (this.notificationListener) {
+        this.notificationListener.remove();
+        this.notificationListener = null;
+      }
+      if (this.responseListener) {
+        this.responseListener.remove();
+        this.responseListener = null;
+      }
+
       // Listen for notifications received while app is running
       this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
         console.log('Notification received:', notification);
@@ -409,6 +419,30 @@ class NotificationService {
       console.log('All notifications cancelled');
     } catch (error) {
       console.error('Error cancelling all notifications:', error);
+    }
+  }
+
+  public async dismissPresentedNotifications(reminderId?: number): Promise<void> {
+    try {
+      const presented = await Notifications.getPresentedNotificationsAsync();
+      
+      if (reminderId !== undefined) {
+        // Dismiss only notifications for this specific reminder
+        const toDismiss = presented
+          .filter(n => n.request.content.data?.reminderId === reminderId)
+          .map(n => n.request.identifier);
+        
+        if (toDismiss.length > 0) {
+          await Notifications.dismissNotificationAsync(toDismiss[0]);
+          console.log(`Dismissed ${toDismiss.length} notification(s) for reminder ${reminderId}`);
+        }
+      } else {
+        // Dismiss all presented notifications
+        await Notifications.dismissAllNotificationsAsync();
+        console.log('All presented notifications dismissed');
+      }
+    } catch (error) {
+      console.error('Error dismissing presented notifications:', error);
     }
   }
 

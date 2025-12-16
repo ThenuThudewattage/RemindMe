@@ -6,11 +6,13 @@ import NotificationService from './notifications';
 class ReminderRepository {
   private dbService: DatabaseService;
   private geofencingService: GeofencingService;
+  private notificationService: NotificationService;
   private static instance: ReminderRepository;
 
   private constructor() {
     this.dbService = DatabaseService.getInstance();
     this.geofencingService = GeofencingService.getInstance();
+    this.notificationService = NotificationService.getInstance();
   }
 
   public static getInstance(): ReminderRepository {
@@ -29,8 +31,7 @@ class ReminderRepository {
     }
 
     // Initialize notification service
-    const notificationService = NotificationService.getInstance();
-    await notificationService.initialize();
+    await this.notificationService.initialize();
     
     // Initialize alarm service
     const AlarmService = (await import('./alarm')).default;
@@ -38,12 +39,15 @@ class ReminderRepository {
     await alarmService.initialize();
     
     // Set up notification action handler to avoid circular dependency
-    notificationService.setNotificationActionHandler(async (reminderId: number, action: string, title: string) => {
+    this.notificationService.setNotificationActionHandler(async (reminderId: number, action: string, title: string) => {
       switch (action) {
         case 'SNOOZE':
-          await this.snoozeReminder(reminderId, 10); // Snooze for 10 minutes
-          await notificationService.scheduleSnoozeNotification(reminderId, title);
-          console.log(`Reminder ${reminderId} snoozed for 10 minutes`);
+          const reminder = await this.getReminder(reminderId);
+          const snoozeTime = reminder?.alarm?.snoozeInterval ?? 10;
+          await this.snoozeReminder(reminderId, snoozeTime);
+          // Schedule notification to show after snooze time
+          await this.notificationService.scheduleSnoozeNotification(reminderId, title, snoozeTime);
+          console.log(`Reminder ${reminderId} snoozed for ${snoozeTime} minutes`);
           break;
         case 'DONE':
           await this.markReminderCompleted(reminderId);
@@ -61,7 +65,7 @@ class ReminderRepository {
     });
 
     // Set up alarm trigger handler
-    notificationService.setAlarmTriggerHandler(async (reminderId: number) => {
+    this.notificationService.setAlarmTriggerHandler(async (reminderId: number) => {
       try {
         const reminder = await this.getReminder(reminderId);
         if (reminder && reminder.alarm?.enabled) {
@@ -74,11 +78,13 @@ class ReminderRepository {
     });
 
     // Set up alarm action handler
-    notificationService.setAlarmActionHandler(async (reminderId: number, action: string, title: string) => {
+    this.notificationService.setAlarmActionHandler(async (reminderId: number, action: string, title: string) => {
       switch (action) {
         case 'ALARM_SNOOZE':
-          await alarmService.snoozeAlarm(10);
-          console.log(`Alarm snoozed for 10 minutes`);
+          const reminder = await this.getReminder(reminderId);
+          const snoozeTime = reminder?.alarm?.snoozeInterval ?? 10;
+          await alarmService.snoozeAlarm(snoozeTime);
+          console.log(`Alarm snoozed for ${snoozeTime} minutes`);
           break;
         case 'ALARM_DISMISS':
           await alarmService.dismissAlarm();
@@ -95,6 +101,18 @@ class ReminderRepository {
 
   public async createReminder(input: CreateReminderInput): Promise<Reminder> {
     try {
+      // If time rule exists and start equals end, add 1 minute to end for "at time" reminders
+      if (input.rule.time?.start && input.rule.time?.end) {
+        const startTime = new Date(input.rule.time.start);
+        const endTime = new Date(input.rule.time.end);
+        
+        if (startTime.getTime() === endTime.getTime()) {
+          endTime.setMinutes(endTime.getMinutes() + 1);
+          input.rule.time.end = endTime.toISOString();
+          console.log(`⏰ Extended end time by 1 minute for "at time" reminder: ${input.rule.time.end}`);
+        }
+      }
+      
       const reminder = await this.dbService.createReminder(input);
       
       // Register geofence if location trigger is enabled
@@ -102,7 +120,7 @@ class ReminderRepository {
         await this.registerGeofence(reminder);
       }
       
-      await this.logEvent(reminder.id, 'triggered', { action: 'created' });
+      await this.logEvent(reminder.id, 'created');
       return reminder;
     } catch (error) {
       console.error('Failed to create reminder:', error);
@@ -139,6 +157,18 @@ class ReminderRepository {
 
   public async updateReminder(input: UpdateReminderInput): Promise<Reminder> {
     try {
+      // If time rule exists and start equals end, add 1 minute to end for "at time" reminders
+      if (input.rule?.time?.start && input.rule?.time?.end) {
+        const startTime = new Date(input.rule.time.start);
+        const endTime = new Date(input.rule.time.end);
+        
+        if (startTime.getTime() === endTime.getTime()) {
+          endTime.setMinutes(endTime.getMinutes() + 1);
+          input.rule.time.end = endTime.toISOString();
+          console.log(`⏰ Extended end time by 1 minute for "at time" reminder: ${input.rule.time.end}`);
+        }
+      }
+      
       // Get the existing reminder to check for geofence changes
       const existingReminder = await this.dbService.getReminderById(input.id);
       const reminder = await this.dbService.updateReminder(input);
@@ -146,7 +176,7 @@ class ReminderRepository {
       // Handle geofence registration/unregistration
       await this.handleGeofenceChanges(existingReminder, reminder);
       
-      await this.logEvent(reminder.id, 'triggered', { action: 'updated' });
+      await this.logEvent(reminder.id, 'updated');
       return reminder;
     } catch (error) {
       console.error('Failed to update reminder:', error);
@@ -162,15 +192,10 @@ class ReminderRepository {
       // Cancel scheduled notifications
       await this.cancelScheduledNotification(id);
       
-      // Clear cooldown from context engine
-      const ContextEngine = (await import('./contextEngine')).ContextEngine;
-      const contextEngine = ContextEngine.getInstance();
-      contextEngine.clearCooldown(id);
-      
       await this.logEvent(id, 'dismissed', { action: 'deleted' });
       await this.dbService.deleteReminder(id);
       
-      console.log(`🗑️ Reminder ${id} deleted and cooldown cleared`);
+      console.log(`🗑️ Reminder ${id} deleted`);
     } catch (error) {
       console.error('Failed to delete reminder:', error);
       throw error;
@@ -201,7 +226,7 @@ class ReminderRepository {
       // Unregister geofence
       await this.unregisterGeofence(id.toString());
       
-      await this.logEvent(id, 'dismissed', { action: 'disabled' });
+      console.log(`✅ Reminder ${id} disabled in database (enabled=false)`);
       return reminder;
     } catch (error) {
       console.error('Failed to disable reminder:', error);
@@ -269,13 +294,15 @@ class ReminderRepository {
   public async dismissReminder(id: number): Promise<void> {
     try {
       await this.logEvent(id, 'dismissed');
+      
+      // Remove the notification from the notification tray
+      await this.notificationService.dismissPresentedNotifications(id);
+      
+      // Cancel any scheduled notifications for this reminder
+      await this.cancelScheduledNotification(id);
+      
       // Disable the reminder so it doesn't trigger again
       await this.disableReminder(id);
-      
-      // Clear cooldown from context engine
-      const ContextEngine = (await import('./contextEngine')).ContextEngine;
-      const contextEngine = ContextEngine.getInstance();
-      contextEngine.clearCooldown(id);
       
       console.log(`✅ Reminder ${id} dismissed and disabled`);
     } catch (error) {

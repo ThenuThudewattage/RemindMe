@@ -37,6 +37,8 @@ import { useAlarmManager } from '../hooks/useAlarmManager';
 import ReminderRepository from '../services/repo';
 import { Reminder } from '../types/reminder';
 import { Accelerometer } from 'expo-sensors';
+import { StatusBar, setStatusBarBackgroundColor } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
 
 const { width, height } = Dimensions.get('window');
 
@@ -78,6 +80,35 @@ export default function AlarmScreen() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // Set alarm screen specific colors
+  useEffect(() => {
+    const setAlarmColors = async () => {
+      if (Platform.OS === 'android') {
+        setStatusBarBackgroundColor('#667eea', false);
+        try {
+          await NavigationBar.setBackgroundColorAsync('#667eea');
+          await NavigationBar.setButtonStyleAsync('light');
+        } catch (error) {
+          console.log('Error setting alarm colors:', error);
+        }
+      }
+    };
+    setAlarmColors();
+
+    // Restore original colors on unmount
+    return () => {
+      if (Platform.OS === 'android') {
+        // Always restore to theme purple status bar
+        setStatusBarBackgroundColor('#6750A4', false);
+        // Restore navigation bar based on current theme - black in dark mode
+        const isDark = theme.dark;
+        const navColor = isDark ? '#000000' : '#FFFFFF';
+        NavigationBar.setBackgroundColorAsync(navColor).catch(() => {});
+        NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark').catch(() => {});
+      }
+    };
+  }, [theme.dark]);
 
   useEffect(() => {
     _subscribe();
@@ -222,7 +253,7 @@ export default function AlarmScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={['#6750A4', '#4a3969', '#1b093bff']}
+          colors={['#667eea', '#764ba2', '#6750A4', '#5f72e4', '#4facfe']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
@@ -244,7 +275,7 @@ export default function AlarmScreen() {
       ]}
     >
       <LinearGradient
-        colors={['#6750A4', '#4a3969', '#1a1a1a']}
+        colors={['#667eea', '#764ba2', '#6750A4', '#5f72e4', '#4facfe']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
@@ -345,7 +376,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '400',
   },
   contentContainer: {
@@ -356,36 +387,36 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    fontSize: 48,
-    fontWeight: '600',
+    fontSize: 36,
+    fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 20,
-    letterSpacing: 1,
+    marginBottom: 16,
+    letterSpacing: 0.5,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
     paddingHorizontal: 20,
     marginTop: 40,
   },
   reminderNotes: {
-    fontSize: 19,
-    marginBottom: 20,
+    fontSize: 16,
+    marginBottom: 16,
     color: '#FFFFFF',
     opacity: 0.95,
-    lineHeight: 28,
+    lineHeight: 24,
     textAlign: 'center',
     paddingHorizontal: 25,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   snoozeCount: {
-    fontSize: 15,
-    marginBottom: 35,
+    fontSize: 13,
+    marginBottom: 24,
     fontStyle: 'italic',
     color: '#FFFFFF',
     opacity: 0.85,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '400',
   },
   shakeInstructionContainer: {
     flexDirection: 'row',
@@ -395,7 +426,7 @@ const styles = StyleSheet.create({
   },
   shakeInstructionText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     opacity: 0.9,
     letterSpacing: 0.3,
@@ -403,21 +434,21 @@ const styles = StyleSheet.create({
   actionContainer: {
     width: '100%',
     maxWidth: 400,
-    gap: 18,
+    gap: 14,
   },
   button: {
     width: '100%',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.5)',
     overflow: 'hidden',
   },
   buttonContent: {
-    height: 68,
+    height: 60,
   },
   buttonLabel: {
-    fontSize: 21,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
