@@ -115,14 +115,16 @@ export default function RemindersListScreen() {
   const filterReminders = () => {
     let filtered = [...reminders];
 
-    // Apply category filter first
+    // Show only active reminders by default
+    filtered = filtered.filter(reminder => reminder.enabled);
+
+    // Apply category filter
     if (activeFilter === 'today') {
       const today = new Date();
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
       
       filtered = filtered.filter(reminder => {
-        if (!reminder.enabled) return false;
         if (reminder.rule.time?.start) {
           const startTime = new Date(reminder.rule.time.start);
           return startTime >= startOfDay && startTime <= endOfDay;
@@ -131,7 +133,7 @@ export default function RemindersListScreen() {
       });
     } else if (activeFilter === 'geofence') {
       filtered = filtered.filter(reminder => 
-        reminder.enabled && reminder.locationTrigger?.enabled
+        reminder.locationTrigger?.enabled
       );
     }
 

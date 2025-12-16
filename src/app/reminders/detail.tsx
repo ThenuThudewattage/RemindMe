@@ -198,7 +198,7 @@ export default function ReminderDetailScreen() {
             borderWidth: 1,
             borderColor: 'rgba(255, 255, 255, 0.1)',
           },
-        ]} mode="outlined">
+        ]} mode="elevated">
           <Card.Content>
             <View style={styles.header}>
               <Text variant="headlineSmall" style={[styles.title, theme.dark && { color: '#FFFFFF' }]}>
@@ -238,7 +238,7 @@ export default function ReminderDetailScreen() {
             borderWidth: 1,
             borderColor: 'rgba(255, 255, 255, 0.1)',
           },
-        ]} mode="outlined">
+        ]} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
               Conditions
@@ -267,7 +267,7 @@ export default function ReminderDetailScreen() {
             borderWidth: 1,
             borderColor: 'rgba(255, 255, 255, 0.1)',
           },
-        ]} mode="outlined">
+        ]} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
               History ({events.length} events)
@@ -309,7 +309,7 @@ export default function ReminderDetailScreen() {
               borderWidth: 1,
               borderColor: 'rgba(255, 255, 255, 0.1)',
             },
-          ]} mode="outlined">
+          ]} mode="elevated">
             <Card.Content>
               <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && { color: '#FFFFFF' }]}>
                 Testing (Development Only)
@@ -321,7 +321,7 @@ export default function ReminderDetailScreen() {
               
               <View style={styles.testingActions}>
                 <Button
-                  mode="outlined"
+                  mode="elevated"
                   onPress={handleSimulateEnter}
                   style={styles.testButton}
                   icon="location-enter"
@@ -329,7 +329,7 @@ export default function ReminderDetailScreen() {
                   Simulate Enter
                 </Button>
                 <Button
-                  mode="outlined"
+                  mode="elevated"
                   onPress={handleSimulateExit}
                   style={styles.testButton}
                   icon="location-exit"
@@ -375,6 +375,12 @@ const styles = StyleSheet.create({
   card: {
     margin: 16,
     marginBottom: 8,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
   },
   header: {
     flexDirection: 'row',
