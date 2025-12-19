@@ -27,22 +27,20 @@ class AlarmService {
     return AlarmService.instance;
   }
 
-  /**
-   * Initialize the alarm service
-   * Sets up audio mode for alarm playback
-   */
+
+  // Initialize the alarm service
   public async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
     try {
-      // Configure audio session for alarm playback
+
       // This ensures audio plays even when device is in silent mode
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
-        playsInSilentModeIOS: true, // CRITICAL: Play even in silent mode
-        staysActiveInBackground: true, // Continue playing in background
-        shouldDuckAndroid: true, // Lower other audio when alarm plays
-        playThroughEarpieceAndroid: false, // Use speakers, not earpiece
+        playsInSilentModeIOS: true, 
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true, 
+        playThroughEarpieceAndroid: false,
       });
 
       // Restore any active alarm state from storage
@@ -67,20 +65,15 @@ class AlarmService {
     }
   }
 
-  /**
-   * Set handler for alarm trigger events
-   * This allows external components to react to alarm triggers
-   */
+  // Set handler for alarm trigger event
   public setAlarmTriggerHandler(handler: (trigger: AlarmTrigger) => void): void {
     this.alarmTriggerHandler = handler;
   }
 
   /**
    * Trigger an alarm for a reminder
-   * This is called when a reminder's conditions are met
-   * 
-   * @param reminder - The reminder to trigger alarm for
-   * @param triggeredBy - What triggered the alarm (time, location, etc.)
+   * @param reminder - 
+   * @param triggeredBy - 
    */
   public async triggerAlarm(
     reminder: Reminder,
@@ -93,7 +86,7 @@ class AlarmService {
         return;
       }
 
-      // Check if already ringing FOR THIS SPECIFIC REMINDER
+      // Check if already ringing 
       if (this.currentAlarm?.isRinging && this.currentAlarm.reminderId === reminder.id) {
         console.log('Alarm already ringing for this reminder, ignoring duplicate trigger');
         return;
@@ -126,7 +119,6 @@ class AlarmService {
       // Load and play alarm sound
       await this.playAlarmSound(reminder.alarm);
 
-      // Vibrate if enabled
       if (reminder.alarm.vibrate !== false) {
         this.startVibration();
       }
@@ -153,19 +145,11 @@ class AlarmService {
     }
   }
 
-  /**
-   * Play alarm sound with looping
-   * Uses system notification sound and vibration
-   */
+
+  // Play alarm sound with looping
   private async playAlarmSound(settings: AlarmSettings): Promise<void> {
     try {
 
-      
-      // For Expo Go, we'll rely on the notification sound + vibration
-      // The notification itself will play a sound
-      // We'll ensure continuous vibration for the alarm effect
-      
-      // Start continuous vibration immediately
       this.startVibration();
       
 
@@ -176,9 +160,7 @@ class AlarmService {
     }
   }
 
-  /**
-   * Playback status update callback
-   */
+  // Playback status update callback
   private onPlaybackStatusUpdate = (status: AVPlaybackStatus): void => {
     if (!status.isLoaded) {
       console.warn('Alarm sound not loaded');
@@ -190,31 +172,24 @@ class AlarmService {
     }
   };
 
-  /**
-   * Start vibration pattern
-   * Vibrates in a pattern until stopped
-   */
+  // Start vibration pattern
+  // Vibrates in a pattern until stopped
   private startVibration(): void {
     if (Platform.OS === 'android') {
       // Android: Vibrate in pattern (vibrate 1s, pause 1s, repeat)
       Vibration.vibrate([1000, 1000], true);
     } else {
-      // iOS: Simple vibration
       Vibration.vibrate();
     }
   }
 
-  /**
-   * Stop vibration
-   */
+  // Stop vibration
   private stopVibration(): void {
     Vibration.cancel();
   }
 
-  /**
-   * Show full-screen alarm notification
-   * This appears even when app is in background or device is locked
-   */
+  // Show full-screen alarm notification
+  // This appears even when app is in background or device is locked
   private async showAlarmNotification(reminder: Reminder): Promise<void> {
     try {
       // Show a high-priority full-screen notification
@@ -301,17 +276,15 @@ class AlarmService {
 
 
 
-      // TODO: Schedule alarm to ring again after snooze interval
-      // This would need to integrate with the reminder scheduling system
+      
+      
     } catch (error) {
       console.error('Failed to snooze alarm:', error);
       throw error;
     }
   }
 
-  /**
-   * Dismiss the current alarm
-   */
+  // Dismiss the current alarm
   public async dismissAlarm(): Promise<void> {
     if (!this.currentAlarm) {
       console.warn('No active alarm to dismiss');
@@ -342,9 +315,8 @@ class AlarmService {
     }
   }
 
-  /**
-   * Stop alarm sound playback
-   */
+  // Stop alarm sound playback
+
   private async stopAlarmSound(): Promise<void> {
     try {
       if (this.alarmSound) {
@@ -358,10 +330,7 @@ class AlarmService {
     }
   }
 
-  /**
-   * Activate wake lock to keep device awake
-   * This prevents the device from sleeping while alarm is ringing
-   */
+  // Activate wake lock
   private async activateWakeLock(): Promise<void> {
     try {
       await activateKeepAwakeAsync('alarm');
@@ -370,10 +339,7 @@ class AlarmService {
       console.error('Failed to activate wake lock:', error);
     }
   }
-
-  /**
-   * Deactivate wake lock
-   */
+  // Deactivate wake lock
   private async deactivateWakeLock(): Promise<void> {
     try {
       deactivateKeepAwake('alarm');
@@ -383,23 +349,17 @@ class AlarmService {
     }
   }
 
-  /**
-   * Get current alarm state
-   */
+  // Get current alarm state
   public getCurrentAlarm(): AlarmState | null {
     return this.currentAlarm;
   }
 
-  /**
-   * Check if an alarm is currently ringing
-   */
+  // Check if an alarm is currently ringing
   public isAlarmRinging(): boolean {
     return this.currentAlarm?.isRinging ?? false;
   }
 
-  /**
-   * Save alarm state to persistent storage
-   */
+  // Save alarm state to persistent storage
   private async saveAlarmState(): Promise<void> {
     try {
       if (this.currentAlarm) {

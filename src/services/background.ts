@@ -23,8 +23,7 @@ class BackgroundService {
 
   public async initialize(): Promise<void> {
     try {
-      // Note: expo-background-fetch is deprecated in favor of expo-task-manager
-      // This warning is expected and the app will continue to work normally
+      
       await this.defineBackgroundTasks();
       await this.registerBackgroundFetch();
       
@@ -34,7 +33,7 @@ class BackgroundService {
 
     } catch (error) {
       console.warn('Background service initialization failed (this is expected in Expo Go):', error);
-      // Don't throw error - this is expected in development
+      
     }
   }
 
@@ -68,9 +67,9 @@ class BackgroundService {
       }
 
       await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-        minimumInterval: 60, // 60 seconds (1 minute)
-        stopOnTerminate: false, // Continue after app is terminated
-        startOnBoot: true, // Start when device boots
+        minimumInterval: 60, 
+        stopOnTerminate: false, 
+        startOnBoot: true, 
       });
 
       this.isRegistered = true;
@@ -235,7 +234,7 @@ class BackgroundService {
 
     } catch (error) {
       console.warn('Failed to initialize geofencing:', error);
-      // Don't throw - app should continue working without geofencing
+    
     }
   }
 }
